@@ -1,0 +1,16 @@
+{
+  "name": "paperclip-core",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --filter @paperclip/web --filter @paperclip/server",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "turbo": "^1.13.2",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

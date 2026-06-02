@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "src/runtime/__tests__/test_functional_validator_failure.ts",
+    "src/runtime/__tests__/test_repair_agent.ts",
+    "src/runtime/__tests__/test_repair_rollback.ts"
+  ]
+}

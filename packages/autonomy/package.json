@@ -1,0 +1,19 @@
+{
+  "name": "@paperclip/autonomy",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "lint": "eslint \"src/**/*.ts*\""
+  },
+  "dependencies": {
+    "@paperclip/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^25.9.1",
+    "typescript": "^5.9.3"
+  }
+}

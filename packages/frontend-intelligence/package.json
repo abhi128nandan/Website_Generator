@@ -1,0 +1,21 @@
+{
+  "name": "@paperclip/frontend-intelligence",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "lint": "eslint \"src/**/*.ts*\""
+  },
+  "dependencies": {
+    "@paperclip/shared": "workspace:*",
+    "@paperclip/ai-engine": "workspace:*",
+    "@langchain/langgraph": "^0.0.18",
+    "@langchain/core": "^0.1.61"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "typescript": "^5.9.3"
+  }
+}

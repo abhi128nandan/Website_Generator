@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PROJECTS_ROOT = path.join(process.env.USERPROFILE || 'C:\\Users\\abhi9', 'PaperclipProjects', 'projects');
+const PROJECTS_ROOT = path.resolve(__dirname, '..', '..', '..', '..', '..', 'runtime', 'generated-projects');
 
 function makeRequest(options, postData) {
   return new Promise((resolve, reject) => {

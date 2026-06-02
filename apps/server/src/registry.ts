@@ -3,10 +3,11 @@ import path from 'path';
 import os from 'os';
 import { GeneratedProject, Logger } from '@paperclip/shared';
 
-// Generated projects MUST live outside the parent monorepo to prevent pnpm workspace contamination
-const PAPERCLIP_PROJECTS_ROOT = path.join(os.homedir(), 'PaperclipProjects');
+// Generated projects live inside the parent monorepo under the runtime directory
+const WORKSPACE_ROOT = path.resolve(__dirname, '..', '..', '..');
+const PAPERCLIP_PROJECTS_ROOT = path.join(WORKSPACE_ROOT, 'runtime');
 const REGISTRY_FILE = path.join(PAPERCLIP_PROJECTS_ROOT, 'projects.json');
-const PROJECTS_DIR = path.join(PAPERCLIP_PROJECTS_ROOT, 'projects');
+const PROJECTS_DIR = path.join(PAPERCLIP_PROJECTS_ROOT, 'generated-projects');
 const DASHBOARD_JSON = path.join(PAPERCLIP_PROJECTS_ROOT, 'reliability-dashboard.json');
 const DASHBOARD_MD = path.join(PAPERCLIP_PROJECTS_ROOT, 'GENERATOR_RELIABILITY.md');
 

@@ -15,8 +15,9 @@ const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 const extractor = new RequirementExtractor();
 
-// Generated projects live outside the parent monorepo for full workspace isolation
-const PAPERCLIP_PROJECTS_ROOT = path.join(os.homedir(), 'PaperclipProjects', 'projects');
+// Generated projects live inside the parent monorepo under the runtime directory
+const WORKSPACE_ROOT = path.resolve(__dirname, '..', '..', '..');
+const PAPERCLIP_PROJECTS_ROOT = path.join(WORKSPACE_ROOT, 'runtime', 'generated-projects');
 
 async function normalizeInput(req: Request): Promise<{ rawText: string, projectName: string, inputType: 'text' | 'upload' }> {
   if (req.is('application/json')) {

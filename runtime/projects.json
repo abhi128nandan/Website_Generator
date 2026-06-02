@@ -1,0 +1,352 @@
+[
+  {
+    "id": "91278a52-91f0-4e42-b708-e296df451e57",
+    "name": "",
+    "createdAt": "2026-05-26T07:30:08.034Z",
+    "status": "completed",
+    "inputType": "upload",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\91278a52-91f0-4e42-b708-e296df451e57",
+    "metadata": {
+      "appName": "",
+      "appType": "",
+      "frontend": [],
+      "backend": [],
+      "database": [],
+      "features": [],
+      "entities": [],
+      "routes": []
+    },
+    "stack": [],
+    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\91278a52-91f0-4e42-b708-e296df451e57\\logs\\generation.log"
+  },
+  {
+    "id": "4919561a-aa4c-48b4-85b3-5b83777ecb84",
+    "name": "To-Do App",
+    "createdAt": "2026-05-26T07:43:45.090Z",
+    "status": "completed",
+    "inputType": "text",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\4919561a-aa4c-48b4-85b3-5b83777ecb84",
+    "metadata": {
+      "appName": "To-Do App",
+      "appType": "Productivity",
+      "frontend": [
+        "HTML",
+        "CSS",
+        "JavaScript"
+      ],
+      "backend": [
+        "Node.js"
+      ],
+      "database": [
+        "MongoDB"
+      ],
+      "features": [
+        "User Authentication",
+        "Task Creation",
+        "Task Deletion"
+      ],
+      "entities": [
+        "User",
+        "Task"
+      ],
+      "routes": [
+        "/login",
+        "/tasks",
+        "/tasks/:id"
+      ]
+    },
+    "stack": [
+      "HTML",
+      "CSS",
+      "JavaScript",
+      "Node.js",
+      "MongoDB"
+    ],
+    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\4919561a-aa4c-48b4-85b3-5b83777ecb84\\logs\\generation.log"
+  },
+  {
+    "id": "f712cff7-7bd1-48a3-8ac9-e8a1db8c3c2b",
+    "name": "Student Information Form",
+    "createdAt": "2026-05-26T07:53:50.381Z",
+    "status": "completed",
+    "inputType": "text",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\f712cff7-7bd1-48a3-8ac9-e8a1db8c3c2b",
+    "metadata": {
+      "appName": "Student Information Form",
+      "appType": "Web Application",
+      "frontend": [
+        "HTML",
+        "CSS",
+        "JavaScript"
+      ],
+      "backend": [
+        "Node.js"
+      ],
+      "database": [
+        "MySQL"
+      ],
+      "features": [
+        "User Input Form",
+        "Data Validation",
+        "Data Storage"
+      ],
+      "entities": [
+        "Student",
+        "Class",
+        "Section",
+        "Branch"
+      ],
+      "routes": [
+        "/submit",
+        "/view",
+        "/update"
+      ]
+    },
+    "stack": [
+      "HTML",
+      "CSS",
+      "JavaScript",
+      "Node.js",
+      "MySQL"
+    ],
+    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\f712cff7-7bd1-48a3-8ac9-e8a1db8c3c2b\\logs\\generation.log"
+  },
+  {
+    "id": "c91502ff-a728-4f29-a711-4157491d38ef",
+    "name": "todo_app_srs",
+    "createdAt": "2026-05-26T08:17:38.945Z",
+    "status": "error",
+    "inputType": "upload",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\c91502ff-a728-4f29-a711-4157491d38ef"
+  },
+  {
+    "id": "a67cd011-bc2f-4651-8de1-d35f937a30f6",
+    "name": "To-Do App",
+    "createdAt": "2026-05-26T08:17:48.721Z",
+    "status": "completed",
+    "inputType": "upload",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\a67cd011-bc2f-4651-8de1-d35f937a30f6",
+    "metadata": {
+      "appName": "To-Do App",
+      "appType": "Task Management Application",
+      "frontend": [
+        "User Interface"
+      ],
+      "backend": [
+        "Server",
+        "API"
+      ],
+      "database": [
+        "Task Database"
+      ],
+      "features": [
+        "Task Creation",
+        "Task Completion Status",
+        "Due Dates",
+        "Priority Settings",
+        "Task Categorization"
+      ],
+      "entities": [
+        "Users",
+        "Tasks"
+      ],
+      "routes": [
+        "Task List",
+        "Task Creation",
+        "Task Update",
+        "Task Deletion"
+      ]
+    },
+    "stack": [
+      "User Interface",
+      "Server",
+      "API",
+      "Task Database"
+    ],
+    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\a67cd011-bc2f-4651-8de1-d35f937a30f6\\logs\\generation.log"
+  },
+  {
+    "id": "84311008-9900-4b1a-ac1b-0b9b6fca2a9b",
+    "name": "To-Do App",
+    "createdAt": "2026-06-02T07:33:17.892Z",
+    "status": "completed",
+    "inputType": "upload",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\84311008-9900-4b1a-ac1b-0b9b6fca2a9b",
+    "metadata": {
+      "appName": "To-Do App",
+      "appType": "crud-admin",
+      "frontend": [
+        "simple and responsive user interface"
+      ],
+      "backend": [
+        "secure data handling"
+      ],
+      "database": [
+        "database structure"
+      ],
+      "features": [
+        "task creation",
+        "task completion status",
+        "due dates",
+        "priority settings",
+        "task categorization"
+      ],
+      "workflows": [
+        "task management"
+      ],
+      "entities": [
+        "tasks"
+      ],
+      "routes": [
+        "add, update, delete, and manage daily tasks"
+      ],
+      "classifiedMode": "crud-admin"
+    },
+    "stack": [
+      "simple and responsive user interface",
+      "secure data handling",
+      "database structure"
+    ],
+    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\84311008-9900-4b1a-ac1b-0b9b6fca2a9b\\logs\\generation.log"
+  },
+  {
+    "id": "9fff6aa9-a1ff-44a8-a145-d13fffa8033b",
+    "name": "todo_app_srs",
+    "createdAt": "2026-06-02T07:39:39.333Z",
+    "status": "error",
+    "inputType": "upload",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\9fff6aa9-a1ff-44a8-a145-d13fffa8033b"
+  },
+  {
+    "id": "79386696-38c2-4bc9-b636-c342c1613005",
+    "name": "To-Do App",
+    "createdAt": "2026-06-02T07:39:47.114Z",
+    "status": "completed",
+    "inputType": "upload",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\79386696-38c2-4bc9-b636-c342c1613005",
+    "metadata": {
+      "appName": "To-Do App",
+      "appType": "crud-admin",
+      "frontend": [
+        "simple and responsive user interface"
+      ],
+      "backend": [
+        "secure data handling"
+      ],
+      "database": [
+        "database structure"
+      ],
+      "features": [
+        "task creation",
+        "task completion status",
+        "due dates",
+        "priority settings",
+        "task categorization"
+      ],
+      "workflows": [
+        "task management"
+      ],
+      "entities": [
+        "tasks"
+      ],
+      "routes": [
+        "add, update, delete, and manage daily tasks"
+      ],
+      "classifiedMode": "crud-admin"
+    },
+    "stack": [
+      "simple and responsive user interface",
+      "secure data handling",
+      "database structure"
+    ],
+    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\79386696-38c2-4bc9-b636-c342c1613005\\logs\\generation.log"
+  },
+  {
+    "id": "4227dea6-0b53-4b2c-bedb-f42621cdabe1",
+    "name": "To-Do App",
+    "createdAt": "2026-06-02T07:42:20.694Z",
+    "status": "completed",
+    "inputType": "upload",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\4227dea6-0b53-4b2c-bedb-f42621cdabe1",
+    "metadata": {
+      "appName": "To-Do App",
+      "appType": "crud-admin",
+      "frontend": [
+        "simple and responsive user interface"
+      ],
+      "backend": [
+        "secure data handling"
+      ],
+      "database": [
+        "database structure"
+      ],
+      "features": [
+        "task creation",
+        "task completion status",
+        "due dates",
+        "priority settings",
+        "task categorization"
+      ],
+      "workflows": [
+        "task management"
+      ],
+      "entities": [
+        "tasks"
+      ],
+      "routes": [
+        "add, update, delete, and manage daily tasks"
+      ],
+      "classifiedMode": "crud-admin"
+    },
+    "stack": [
+      "simple and responsive user interface",
+      "secure data handling",
+      "database structure"
+    ],
+    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\4227dea6-0b53-4b2c-bedb-f42621cdabe1\\logs\\generation.log"
+  },
+  {
+    "id": "e6180524-f447-4c40-9a00-f3bcddd8e559",
+    "name": "To-Do App",
+    "createdAt": "2026-06-02T07:50:56.056Z",
+    "status": "completed",
+    "inputType": "upload",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\e6180524-f447-4c40-9a00-f3bcddd8e559",
+    "metadata": {
+      "appName": "To-Do App",
+      "appType": "crud-admin",
+      "frontend": [
+        "simple and responsive user interface"
+      ],
+      "backend": [
+        "secure data handling"
+      ],
+      "database": [
+        "database structure"
+      ],
+      "features": [
+        "task creation",
+        "task completion status",
+        "due dates",
+        "priority settings",
+        "task categorization"
+      ],
+      "workflows": [
+        "task management"
+      ],
+      "entities": [
+        "tasks"
+      ],
+      "routes": [
+        "add, update, delete, and manage daily tasks"
+      ],
+      "classifiedMode": "crud-admin"
+    },
+    "stack": [
+      "simple and responsive user interface",
+      "secure data handling",
+      "database structure"
+    ],
+    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\e6180524-f447-4c40-9a00-f3bcddd8e559\\logs\\generation.log"
+  }
+]

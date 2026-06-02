@@ -1,0 +1,62 @@
+[
+  {
+    "id": "84311008-9900-4b1a-ac1b-0b9b6fca2a9b",
+    "name": "To-Do App",
+    "mode": "crud-admin",
+    "status": "completed",
+    "createdAt": "2026-06-02T07:33:17.892Z",
+    "buildSuccess": true,
+    "runtimeSuccess": true,
+    "apiSuccess": true,
+    "persistenceSuccess": false,
+    "score": 90
+  },
+  {
+    "id": "9fff6aa9-a1ff-44a8-a145-d13fffa8033b",
+    "name": "todo_app_srs",
+    "mode": "unknown",
+    "status": "error",
+    "createdAt": "2026-06-02T07:39:39.333Z",
+    "buildSuccess": false,
+    "runtimeSuccess": false,
+    "apiSuccess": false,
+    "persistenceSuccess": false,
+    "score": 0
+  },
+  {
+    "id": "79386696-38c2-4bc9-b636-c342c1613005",
+    "name": "To-Do App",
+    "mode": "crud-admin",
+    "status": "completed",
+    "createdAt": "2026-06-02T07:39:47.114Z",
+    "buildSuccess": true,
+    "runtimeSuccess": true,
+    "apiSuccess": true,
+    "persistenceSuccess": false,
+    "score": 90
+  },
+  {
+    "id": "4227dea6-0b53-4b2c-bedb-f42621cdabe1",
+    "name": "To-Do App",
+    "mode": "crud-admin",
+    "status": "completed",
+    "createdAt": "2026-06-02T07:42:20.694Z",
+    "buildSuccess": true,
+    "runtimeSuccess": true,
+    "apiSuccess": true,
+    "persistenceSuccess": false,
+    "score": 90
+  },
+  {
+    "id": "e6180524-f447-4c40-9a00-f3bcddd8e559",
+    "name": "To-Do App",
+    "mode": "crud-admin",
+    "status": "completed",
+    "createdAt": "2026-06-02T07:50:56.056Z",
+    "buildSuccess": true,
+    "runtimeSuccess": true,
+    "apiSuccess": true,
+    "persistenceSuccess": false,
+    "score": 90
+  }
+]

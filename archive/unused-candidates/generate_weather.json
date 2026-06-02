@@ -1,0 +1,3 @@
+{
+  "text": "Build a Weather Tracker application with the following features: City search with autocomplete, Current temperature display in Celsius and Fahrenheit, Humidity percentage display, Wind speed display in km/h, Weather condition icons from OpenWeatherMap, 5-day weather forecast, LocalStorage for recent search history of last 10 cities. Use OpenWeatherMap API for real weather data. The app should have a clean modern UI with a search bar at the top, current weather card, forecast section, and recent searches sidebar."
+}

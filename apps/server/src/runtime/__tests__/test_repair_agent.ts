@@ -44,8 +44,39 @@ async function runTest() {
     console.log(brokenContent);
     console.log('--------------------------------\n');
     
+    // 1.5. Mock the AI Provider to return corrected code deterministically
+    console.log('[MOCK] Replacing ProviderFactory.getProvider to return corrected code...');
+    const { ProviderFactory } = require('@paperclip/ai-engine');
+    const originalGetProvider = ProviderFactory.getProvider;
+    ProviderFactory.getProvider = () => {
+      return {
+        generateText: async (_prompt: string) => {
+          const correctedContent = `import React from 'react';
+
+interface Props {
+  title: string;
+}
+
+export const MyComponent: React.FC<Props> = ({ title }) => {
+  console.log(title);
+  return (
+    <div>{title}</div>
+  );
+};
+`;
+          return '```typescript\n' + correctedContent + '\n```';
+        },
+        generateJSON: async (_prompt: string) => {
+          return '{}';
+        },
+      } as any;
+    };
+
     console.log('Invoking RepairAgent.repair...');
     const result = await RepairAgent.repair(tempProjectDir, reportedErrors);
+
+    // Restore provider
+    ProviderFactory.getProvider = originalGetProvider;
     console.log(`Repair result: ${result}\n`);
     
     if (!result) {

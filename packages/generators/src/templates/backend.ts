@@ -89,6 +89,15 @@ app.get('/api/health', (req, res) => {
 
       // Grouped Endpoints
       Object.keys(endpointsByEntity).forEach(entityName => {
+        // Resolve plural/singular mismatches between endpoints and entities
+        const matchedEntity = reqs.architecture?.entities?.find(e => 
+          e.name.toLowerCase() === entityName.toLowerCase() || 
+          e.name.toLowerCase() + 's' === entityName.toLowerCase() || 
+          e.name.toLowerCase() === entityName.toLowerCase() + 's'
+        );
+        const finalEntityName = matchedEntity ? matchedEntity.name : entityName;
+        const prismaModel = finalEntityName.charAt(0).toLowerCase() + finalEntityName.slice(1);
+
         indexTs += `\n// --- Endpoints for ${entityName} ---\n`;
         endpointsByEntity[entityName].forEach(ep => {
           const normalizedPath = normalizeExpressPath(ep.path);
@@ -100,22 +109,26 @@ app.${ep.method.toLowerCase()}('${normalizedPath}', async (req, res) => {
     `;
           
           if (ep.method === 'GET' && normalizedPath.includes('/:id')) {
-             indexTs += `const data = await prisma.${entityName.charAt(0).toLowerCase() + entityName.slice(1)}.findUnique({ where: { id: req.params.id } });\n    res.json(data);`;
+             indexTs += `const data = await prisma.${prismaModel}.findUnique({ where: { id: req.params.id } });\n    res.json(data);`;
           } else if (ep.method === 'GET') {
-             indexTs += `const data = await prisma.${entityName.charAt(0).toLowerCase() + entityName.slice(1)}.findMany();\n    res.json(data);`;
+             indexTs += `const data = await prisma.${prismaModel}.findMany();\n    res.json(data);`;
           } else if (ep.method === 'POST') {
-             indexTs += `const data = await prisma.${entityName.charAt(0).toLowerCase() + entityName.slice(1)}.create({ data: req.body });\n    res.status(201).json(data);`;
+             indexTs += `const data = await prisma.${prismaModel}.create({ data: req.body });\n    res.status(201).json(data);`;
           } else if (ep.method === 'PUT') {
-             indexTs += `const data = await prisma.${entityName.charAt(0).toLowerCase() + entityName.slice(1)}.update({ where: { id: req.params.id }, data: req.body });\n    res.json(data);`;
+             indexTs += `const data = await prisma.${prismaModel}.update({ where: { id: req.params.id }, data: req.body });\n    res.json(data);`;
           } else if (ep.method === 'DELETE') {
-             indexTs += `await prisma.${entityName.charAt(0).toLowerCase() + entityName.slice(1)}.delete({ where: { id: req.params.id } });\n    res.status(204).send();`;
+             indexTs += `await prisma.${prismaModel}.delete({ where: { id: req.params.id } });\n    res.status(204).send();`;
           } else {
              indexTs += `res.json({ message: 'Not implemented' });`;
           }
 
           indexTs += `
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error(\`[Backend Error] \${req.method} \${req.originalUrl}\`);
+    console.error('Request Body:', req.body);
+    console.error('Error Message:', error.message);
+    console.error('Stack Trace:', error.stack);
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 });
 `;
@@ -135,7 +148,11 @@ app.${ep.method.toLowerCase()}('${normalizedPath}', async (req, res) => {
     // TODO: Implement generated business logic dynamically
     res.json({ message: 'Custom endpoint ${normalizedPath} executed successfully', logic: '${ep.businessLogic}' });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error(\`[Backend Error] \${req.method} \${req.originalUrl}\`);
+    console.error('Request Body:', req.body);
+    console.error('Error Message:', error.message);
+    console.error('Stack Trace:', error.stack);
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 });
 `;

@@ -1,352 +1,482 @@
 [
   {
-    "id": "91278a52-91f0-4e42-b708-e296df451e57",
-    "name": "",
-    "createdAt": "2026-05-26T07:30:08.034Z",
-    "status": "completed",
+    "id": "3f803e50-f6c1-4ae9-aae9-5b3971d4ebf3",
+    "name": "todo_app_srs",
+    "createdAt": "2026-06-04T06:34:55.344Z",
+    "status": "generating",
     "inputType": "upload",
-    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\91278a52-91f0-4e42-b708-e296df451e57",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\apps\\runtime\\generated-projects\\3f803e50-f6c1-4ae9-aae9-5b3971d4ebf3"
+  },
+  {
+    "id": "96a8c103-0b60-439a-ac51-70c81b9af51b",
+    "name": "TodoTaskManager",
+    "createdAt": "2026-06-04T06:36:22.389Z",
+    "status": "generating",
+    "inputType": "text",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\apps\\runtime\\generated-projects\\96a8c103-0b60-439a-ac51-70c81b9af51b",
     "metadata": {
-      "appName": "",
-      "appType": "",
+      "appName": "TodoTaskManager",
+      "appType": "crud-app",
+      "frontend": [
+        "React",
+        "LocalStorage"
+      ],
+      "backend": [
+        "No backend (client-side only)"
+      ],
+      "database": [
+        "LocalStorage (IndexedDB)"
+      ],
+      "features": [
+        "Task creation with title/description",
+        "Task status tracking (pending/complete)",
+        "Due date reminders",
+        "Task filtering by status"
+      ],
+      "workflows": [
+        "Create task -> Mark as complete -> Delete task",
+        "Edit task details -> Save changes",
+        "Filter tasks by status"
+      ],
+      "entities": [
+        {
+          "name": "Task",
+          "fields": [
+            "id",
+            "title",
+            "description",
+            "dueDate",
+            "status",
+            "createdAt"
+          ],
+          "validations": [
+            "title must be non-empty",
+            "dueDate must be future date",
+            "status must be 'pending' or 'complete'"
+          ],
+          "relationships": [
+            "1:N with Subtask (optional)"
+          ]
+        }
+      ],
+      "routes": [
+        "/",
+        "/tasks",
+        "/completed"
+      ],
+      "classifiedMode": "frontend-app"
+    },
+    "stack": [
+      "React",
+      "LocalStorage",
+      "No backend (client-side only)",
+      "LocalStorage (IndexedDB)"
+    ]
+  },
+  {
+    "id": "659ac8a7-5b68-460e-9149-b0e8eed9de0a",
+    "name": "TodoManager",
+    "createdAt": "2026-06-04T06:39:11.939Z",
+    "status": "generating",
+    "inputType": "upload",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\apps\\runtime\\generated-projects\\659ac8a7-5b68-460e-9149-b0e8eed9de0a",
+    "metadata": {
+      "appName": "TodoManager",
+      "appType": "crud-admin",
+      "frontend": [
+        "React",
+        "Bootstrap"
+      ],
+      "backend": [
+        "Node.js",
+        "Express"
+      ],
+      "database": [
+        "MongoDB",
+        "Mongoose"
+      ],
+      "features": [
+        "Task creation with title, description, and due date",
+        "Task status tracking (completed/pending)",
+        "Priority settings (high/medium/low)",
+        "Task categorization",
+        "Responsive UI for multi-device compatibility"
+      ],
+      "workflows": [
+        "User creates a new task with required fields",
+        "User marks task as completed",
+        "User edits task details",
+        "User deletes a task",
+        "User filters tasks by category/priority"
+      ],
+      "entities": [
+        {
+          "name": "Task",
+          "fields": [
+            "title",
+            "description",
+            "dueDate",
+            "priority",
+            "status",
+            "category"
+          ],
+          "validations": [
+            "dueDate must be a valid future date",
+            "priority must be high/medium/low",
+            "status must be boolean (completed/pending)"
+          ],
+          "relationships": []
+        }
+      ],
+      "routes": [
+        "POST /tasks",
+        "GET /tasks",
+        "GET /tasks/:id",
+        "PUT /tasks/:id",
+        "DELETE /tasks/:id"
+      ],
+      "classifiedMode": "hybrid-fullstack"
+    },
+    "stack": [
+      "React",
+      "Bootstrap",
+      "Node.js",
+      "Express",
+      "MongoDB",
+      "Mongoose"
+    ]
+  },
+  {
+    "id": "613cb59e-ca73-4cab-9af7-9d819ac8c3ab",
+    "name": "UnnamedApp",
+    "createdAt": "2026-06-04T06:54:01.683Z",
+    "status": "generating",
+    "inputType": "upload",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\apps\\runtime\\generated-projects\\613cb59e-ca73-4cab-9af7-9d819ac8c3ab",
+    "metadata": {
+      "appName": "UnnamedApp",
+      "appType": "unknown",
       "frontend": [],
       "backend": [],
       "database": [],
-      "features": [],
+      "features": [
+        "No features specified in the provided SRS content (PDF content appears to be binary/encoded and unreadable)"
+      ],
+      "workflows": [],
       "entities": [],
-      "routes": []
+      "routes": [],
+      "classifiedMode": "hybrid-fullstack"
     },
-    "stack": [],
-    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\91278a52-91f0-4e42-b708-e296df451e57\\logs\\generation.log"
+    "stack": []
   },
   {
-    "id": "4919561a-aa4c-48b4-85b3-5b83777ecb84",
-    "name": "To-Do App",
-    "createdAt": "2026-05-26T07:43:45.090Z",
-    "status": "completed",
+    "id": "64f310a4-b778-4320-9bbd-1909deccd81a",
+    "name": "SimpleCalculatorApp",
+    "createdAt": "2026-06-04T07:14:29.913Z",
+    "status": "generating",
     "inputType": "text",
-    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\4919561a-aa4c-48b4-85b3-5b83777ecb84",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\apps\\runtime\\generated-projects\\64f310a4-b778-4320-9bbd-1909deccd81a",
     "metadata": {
-      "appName": "To-Do App",
-      "appType": "Productivity",
+      "appName": "SimpleCalculatorApp",
+      "appType": "frontend-app",
       "frontend": [
-        "HTML",
-        "CSS",
+        "HTML5",
+        "CSS3",
         "JavaScript"
       ],
+      "backend": [],
+      "database": [],
+      "features": [
+        "Basic arithmetic operations (addition, subtraction, multiplication, division)",
+        "Numeric buttons (0-9) and operator buttons",
+        "Display screen for input/results",
+        "Clear and delete functionality",
+        "Decimal number support",
+        "Responsive design for desktop and mobile"
+      ],
+      "workflows": [
+        "User inputs numbers/operators via buttons",
+        "JavaScript processes calculations instantly in-browser",
+        "Display updates with results or errors",
+        "Clear/delete actions reset partial inputs"
+      ],
+      "entities": [
+        {
+          "name": "Calculator",
+          "fields": [
+            "displayValue",
+            "currentOperator",
+            "previousValue",
+            "isDecimalActive"
+          ],
+          "validations": [
+            "Division by zero must show error",
+            "Only one decimal point allowed per number",
+            "Operator must be selected before second operand"
+          ],
+          "relationships": []
+        }
+      ],
+      "routes": [
+        "/calculator"
+      ],
+      "classifiedMode": "frontend-app"
+    },
+    "stack": [
+      "HTML5",
+      "CSS3",
+      "JavaScript"
+    ]
+  },
+  {
+    "id": "99ddcf19-57ad-4646-9bdd-9cd9e921b322",
+    "name": "BasicCalculatorApp",
+    "createdAt": "2026-06-04T08:01:30.281Z",
+    "status": "generating",
+    "inputType": "text",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\apps\\runtime\\generated-projects\\99ddcf19-57ad-4646-9bdd-9cd9e921b322",
+    "metadata": {
+      "appName": "BasicCalculatorApp",
+      "appType": "frontend-app",
+      "frontend": [
+        "CalculatorPage",
+        "CalculatorDisplay",
+        "CalculatorKeyboard",
+        "useCalculatorState"
+      ],
+      "backend": [],
+      "database": [],
+      "features": [
+        "Arithmetic operations (+, -, *, /)",
+        "Decimal number calculations",
+        "Error handling for division by zero",
+        "Continuous calculation support",
+        "Keyboard input compatibility",
+        "Responsive UI for mobile/desktop"
+      ],
+      "workflows": [
+        "User inputs numbers/operators -> Display updates expression",
+        "User presses equals -> Calculates result",
+        "User presses clear/backspace -> Resets/edits input",
+        "Invalid input detected -> Shows error message",
+        "Division by zero -> Displays 'Error' message"
+      ],
+      "entities": [
+        {
+          "name": "Calculator",
+          "fields": [
+            "currentExpression",
+            "result",
+            "error"
+          ],
+          "validations": [
+            "Division by zero validation",
+            "Invalid expression prevention",
+            "Decimal point limit validation"
+          ],
+          "relationships": [
+            "1:1 with CalculatorDisplay",
+            "1:1 with CalculatorKeyboard"
+          ]
+        }
+      ],
+      "routes": [
+        "/"
+      ],
+      "classifiedMode": "frontend-app"
+    },
+    "stack": [
+      "CalculatorPage",
+      "CalculatorDisplay",
+      "CalculatorKeyboard",
+      "useCalculatorState"
+    ]
+  },
+  {
+    "id": "8145091c-68d0-4569-9f3c-2857e033feb8",
+    "name": "BasicCalcApp",
+    "createdAt": "2026-06-04T08:12:36.545Z",
+    "status": "generating",
+    "inputType": "text",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\apps\\runtime\\generated-projects\\8145091c-68d0-4569-9f3c-2857e033feb8",
+    "metadata": {
+      "appName": "BasicCalcApp",
+      "appType": "frontend-app",
+      "frontend": [
+        "React"
+      ],
+      "backend": [],
+      "database": [],
+      "features": [
+        "Perform addition, subtraction, multiplication, and division operations",
+        "Support decimal number calculations",
+        "Handle clear (C) and backspace operations",
+        "Display current expression and result",
+        "Enable keyboard input support"
+      ],
+      "workflows": [
+        "User inputs numbers and operators to form an expression",
+        "User presses equals to calculate result",
+        "User handles errors like division by zero",
+        "User uses keyboard for input"
+      ],
+      "entities": [
+        {
+          "name": "CalculatorState",
+          "fields": [
+            "currentExpression",
+            "result",
+            "error"
+          ],
+          "validations": [
+            "Division by zero returns error message",
+            "Invalid expressions are prevented",
+            "Decimal calculations maintain precision"
+          ],
+          "relationships": []
+        }
+      ],
+      "routes": [
+        "/"
+      ],
+      "classifiedMode": "frontend-app"
+    },
+    "stack": [
+      "React"
+    ]
+  },
+  {
+    "id": "256002f2-2cd8-4500-8fdd-9f7de3442fd4",
+    "name": "BasicCalcApp",
+    "createdAt": "2026-06-04T08:26:04.981Z",
+    "status": "error",
+    "inputType": "text",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\apps\\runtime\\generated-projects\\256002f2-2cd8-4500-8fdd-9f7de3442fd4",
+    "metadata": {
+      "appName": "BasicCalcApp",
+      "appType": "frontend-app",
+      "frontend": [
+        "React"
+      ],
+      "backend": [],
+      "database": [],
+      "features": [
+        "Addition",
+        "Subtraction",
+        "Multiplication",
+        "Division",
+        "Clear button",
+        "Delete last character button",
+        "Decimal number support",
+        "Display current expression",
+        "Display result",
+        "Keyboard input support",
+        "Responsive UI"
+      ],
+      "workflows": [
+        "User enters numbers and operators to form an expression",
+        "User presses equals to calculate result",
+        "User clears input or deletes last character",
+        "Application handles invalid operations gracefully"
+      ],
+      "entities": [
+        {
+          "name": "Calculator",
+          "fields": [
+            "currentInput",
+            "result",
+            "operator",
+            "expressionHistory"
+          ],
+          "validations": [
+            "Division by zero returns error message",
+            "Invalid expressions are rejected with visual feedback",
+            "Decimal input limited to two decimal places"
+          ],
+          "relationships": []
+        }
+      ],
+      "routes": [
+        "/"
+      ],
+      "classifiedMode": "frontend-app"
+    },
+    "stack": [
+      "React"
+    ],
+    "errorCategory": "BUILD FAILED"
+  },
+  {
+    "id": "51647c67-f034-4db9-b101-6be04aada4b4",
+    "name": "TodoManager",
+    "createdAt": "2026-06-05T11:52:16.771Z",
+    "status": "error",
+    "inputType": "upload",
+    "rootPath": "C:\\paperclip-core\\paperclip-core\\apps\\runtime\\generated-projects\\51647c67-f034-4db9-b101-6be04aada4b4",
+    "metadata": {
+      "appName": "TodoManager",
+      "appType": "crud-admin",
+      "frontend": [
+        "React",
+        "Responsive UI"
+      ],
       "backend": [
-        "Node.js"
+        "Node.js",
+        "Express.js"
       ],
       "database": [
         "MongoDB"
       ],
       "features": [
-        "User Authentication",
-        "Task Creation",
-        "Task Deletion"
+        "Task creation with title/description",
+        "Task status tracking (completed/pending)",
+        "Due date and priority settings",
+        "Task categorization",
+        "Cross-device compatibility"
+      ],
+      "workflows": [
+        "User creates a task with due date and priority",
+        "User marks task as completed",
+        "User filters tasks by category/priority",
+        "User deletes expired tasks"
       ],
       "entities": [
-        "User",
-        "Task"
+        {
+          "name": "Task",
+          "fields": [
+            "title",
+            "description",
+            "dueDate",
+            "priority",
+            "status",
+            "category"
+          ],
+          "validations": [
+            "title must not be empty",
+            "dueDate must be a valid future date",
+            "priority must be between 1-5"
+          ],
+          "relationships": [
+            "1:N with User (future authentication module)"
+          ]
+        }
       ],
       "routes": [
-        "/login",
-        "/tasks",
-        "/tasks/:id"
-      ]
+        "GET /tasks",
+        "POST /tasks",
+        "PUT /tasks/:id",
+        "DELETE /tasks/:id",
+        "GET /categories"
+      ],
+      "classifiedMode": "crud-admin"
     },
     "stack": [
-      "HTML",
-      "CSS",
-      "JavaScript",
+      "React",
+      "Responsive UI",
       "Node.js",
+      "Express.js",
       "MongoDB"
     ],
-    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\4919561a-aa4c-48b4-85b3-5b83777ecb84\\logs\\generation.log"
-  },
-  {
-    "id": "f712cff7-7bd1-48a3-8ac9-e8a1db8c3c2b",
-    "name": "Student Information Form",
-    "createdAt": "2026-05-26T07:53:50.381Z",
-    "status": "completed",
-    "inputType": "text",
-    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\f712cff7-7bd1-48a3-8ac9-e8a1db8c3c2b",
-    "metadata": {
-      "appName": "Student Information Form",
-      "appType": "Web Application",
-      "frontend": [
-        "HTML",
-        "CSS",
-        "JavaScript"
-      ],
-      "backend": [
-        "Node.js"
-      ],
-      "database": [
-        "MySQL"
-      ],
-      "features": [
-        "User Input Form",
-        "Data Validation",
-        "Data Storage"
-      ],
-      "entities": [
-        "Student",
-        "Class",
-        "Section",
-        "Branch"
-      ],
-      "routes": [
-        "/submit",
-        "/view",
-        "/update"
-      ]
-    },
-    "stack": [
-      "HTML",
-      "CSS",
-      "JavaScript",
-      "Node.js",
-      "MySQL"
-    ],
-    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\f712cff7-7bd1-48a3-8ac9-e8a1db8c3c2b\\logs\\generation.log"
-  },
-  {
-    "id": "c91502ff-a728-4f29-a711-4157491d38ef",
-    "name": "todo_app_srs",
-    "createdAt": "2026-05-26T08:17:38.945Z",
-    "status": "error",
-    "inputType": "upload",
-    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\c91502ff-a728-4f29-a711-4157491d38ef"
-  },
-  {
-    "id": "a67cd011-bc2f-4651-8de1-d35f937a30f6",
-    "name": "To-Do App",
-    "createdAt": "2026-05-26T08:17:48.721Z",
-    "status": "completed",
-    "inputType": "upload",
-    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\a67cd011-bc2f-4651-8de1-d35f937a30f6",
-    "metadata": {
-      "appName": "To-Do App",
-      "appType": "Task Management Application",
-      "frontend": [
-        "User Interface"
-      ],
-      "backend": [
-        "Server",
-        "API"
-      ],
-      "database": [
-        "Task Database"
-      ],
-      "features": [
-        "Task Creation",
-        "Task Completion Status",
-        "Due Dates",
-        "Priority Settings",
-        "Task Categorization"
-      ],
-      "entities": [
-        "Users",
-        "Tasks"
-      ],
-      "routes": [
-        "Task List",
-        "Task Creation",
-        "Task Update",
-        "Task Deletion"
-      ]
-    },
-    "stack": [
-      "User Interface",
-      "Server",
-      "API",
-      "Task Database"
-    ],
-    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\a67cd011-bc2f-4651-8de1-d35f937a30f6\\logs\\generation.log"
-  },
-  {
-    "id": "84311008-9900-4b1a-ac1b-0b9b6fca2a9b",
-    "name": "To-Do App",
-    "createdAt": "2026-06-02T07:33:17.892Z",
-    "status": "completed",
-    "inputType": "upload",
-    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\84311008-9900-4b1a-ac1b-0b9b6fca2a9b",
-    "metadata": {
-      "appName": "To-Do App",
-      "appType": "crud-admin",
-      "frontend": [
-        "simple and responsive user interface"
-      ],
-      "backend": [
-        "secure data handling"
-      ],
-      "database": [
-        "database structure"
-      ],
-      "features": [
-        "task creation",
-        "task completion status",
-        "due dates",
-        "priority settings",
-        "task categorization"
-      ],
-      "workflows": [
-        "task management"
-      ],
-      "entities": [
-        "tasks"
-      ],
-      "routes": [
-        "add, update, delete, and manage daily tasks"
-      ],
-      "classifiedMode": "crud-admin"
-    },
-    "stack": [
-      "simple and responsive user interface",
-      "secure data handling",
-      "database structure"
-    ],
-    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\84311008-9900-4b1a-ac1b-0b9b6fca2a9b\\logs\\generation.log"
-  },
-  {
-    "id": "9fff6aa9-a1ff-44a8-a145-d13fffa8033b",
-    "name": "todo_app_srs",
-    "createdAt": "2026-06-02T07:39:39.333Z",
-    "status": "error",
-    "inputType": "upload",
-    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\9fff6aa9-a1ff-44a8-a145-d13fffa8033b"
-  },
-  {
-    "id": "79386696-38c2-4bc9-b636-c342c1613005",
-    "name": "To-Do App",
-    "createdAt": "2026-06-02T07:39:47.114Z",
-    "status": "completed",
-    "inputType": "upload",
-    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\79386696-38c2-4bc9-b636-c342c1613005",
-    "metadata": {
-      "appName": "To-Do App",
-      "appType": "crud-admin",
-      "frontend": [
-        "simple and responsive user interface"
-      ],
-      "backend": [
-        "secure data handling"
-      ],
-      "database": [
-        "database structure"
-      ],
-      "features": [
-        "task creation",
-        "task completion status",
-        "due dates",
-        "priority settings",
-        "task categorization"
-      ],
-      "workflows": [
-        "task management"
-      ],
-      "entities": [
-        "tasks"
-      ],
-      "routes": [
-        "add, update, delete, and manage daily tasks"
-      ],
-      "classifiedMode": "crud-admin"
-    },
-    "stack": [
-      "simple and responsive user interface",
-      "secure data handling",
-      "database structure"
-    ],
-    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\79386696-38c2-4bc9-b636-c342c1613005\\logs\\generation.log"
-  },
-  {
-    "id": "4227dea6-0b53-4b2c-bedb-f42621cdabe1",
-    "name": "To-Do App",
-    "createdAt": "2026-06-02T07:42:20.694Z",
-    "status": "completed",
-    "inputType": "upload",
-    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\4227dea6-0b53-4b2c-bedb-f42621cdabe1",
-    "metadata": {
-      "appName": "To-Do App",
-      "appType": "crud-admin",
-      "frontend": [
-        "simple and responsive user interface"
-      ],
-      "backend": [
-        "secure data handling"
-      ],
-      "database": [
-        "database structure"
-      ],
-      "features": [
-        "task creation",
-        "task completion status",
-        "due dates",
-        "priority settings",
-        "task categorization"
-      ],
-      "workflows": [
-        "task management"
-      ],
-      "entities": [
-        "tasks"
-      ],
-      "routes": [
-        "add, update, delete, and manage daily tasks"
-      ],
-      "classifiedMode": "crud-admin"
-    },
-    "stack": [
-      "simple and responsive user interface",
-      "secure data handling",
-      "database structure"
-    ],
-    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\4227dea6-0b53-4b2c-bedb-f42621cdabe1\\logs\\generation.log"
-  },
-  {
-    "id": "e6180524-f447-4c40-9a00-f3bcddd8e559",
-    "name": "To-Do App",
-    "createdAt": "2026-06-02T07:50:56.056Z",
-    "status": "completed",
-    "inputType": "upload",
-    "rootPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\e6180524-f447-4c40-9a00-f3bcddd8e559",
-    "metadata": {
-      "appName": "To-Do App",
-      "appType": "crud-admin",
-      "frontend": [
-        "simple and responsive user interface"
-      ],
-      "backend": [
-        "secure data handling"
-      ],
-      "database": [
-        "database structure"
-      ],
-      "features": [
-        "task creation",
-        "task completion status",
-        "due dates",
-        "priority settings",
-        "task categorization"
-      ],
-      "workflows": [
-        "task management"
-      ],
-      "entities": [
-        "tasks"
-      ],
-      "routes": [
-        "add, update, delete, and manage daily tasks"
-      ],
-      "classifiedMode": "crud-admin"
-    },
-    "stack": [
-      "simple and responsive user interface",
-      "secure data handling",
-      "database structure"
-    ],
-    "logsPath": "C:\\paperclip-core\\paperclip-core\\runtime\\generated-projects\\e6180524-f447-4c40-9a00-f3bcddd8e559\\logs\\generation.log"
+    "errorCategory": "BUILD FAILED"
   }
 ]

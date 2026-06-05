@@ -77,6 +77,40 @@ export default {
 `;
     await fs.writeFile(path.join(frontendDir, 'postcss.config.js'), postcssConfig);
 
+    const tsconfigJson = `{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "types": ["vite/client"]
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}`;
+    await fs.writeFile(path.join(frontendDir, 'tsconfig.json'), tsconfigJson);
+
+    const tsconfigNodeJson = `{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["vite.config.ts"]
+}`;
+    await fs.writeFile(path.join(frontendDir, 'tsconfig.node.json'), tsconfigNodeJson);
+
     // Basic src
     const srcDir = path.join(frontendDir, 'src');
     await fs.mkdir(srcDir, { recursive: true });

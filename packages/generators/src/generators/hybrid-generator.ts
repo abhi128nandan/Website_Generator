@@ -9,7 +9,13 @@ import util from 'util';
 import { ASTValidator } from '../validators/ast-validator';
 import { ReactStructureValidator } from '../validators/react-structure-validator';
 import { PlaceholderValidator } from '../validators/placeholder-validator';
+import { ImportIntegrityValidator } from '../validators/import-integrity-validator';
+import { FunctionalFlowValidator } from '../validators/functional-flow-validator';
 import { RepairAgent } from '../agents/repair-agent';
+import { OutputSanitizer } from '../validators/output-sanitizer';
+import { SyntaxGate } from '../validators/syntax-gate';
+import { CompileGate } from '../validators/compile-gate';
+import { RequestQueue } from '@paperclip/ai-engine';
 
 const execPromise = util.promisify(exec);
 /**
@@ -87,7 +93,20 @@ export class HybridGenerator {
       throw new Error(`Hybrid scaffold validation failed. Missing files: ${missing.join(', ')}`);
     }
 
-    onLog(5, '[hybrid-generator] Starting Auto Repair Loop...');
+    // === STEP 4.5: Generate Manifest ===
+    onLog(5, 'Creating generated-manifest.json...');
+    const manifest = {
+      pages: arch.pages?.map(p => p.componentName) || [],
+      components: arch.components?.map(c => c.name) || [],
+      hooks: arch.hooks?.map(h => h.name) || [],
+      services: arch.services?.map(s => s.name) || [],
+      routes: arch.pages?.map(p => p.route) || [],
+      prismaModels: reqs.entities?.map((e: any) => e.name) || []
+    };
+    await fs.writeFile(path.join(targetDir, 'generated-manifest.json'), JSON.stringify(manifest, null, 2));
+
+    // === STEP 5: Validation and Repair Loop ===
+    onLog(5, 'Starting validation and repair loop...');
     let buildPassed = false;
     let repairAttempts = 0;
     const maxRepairAttempts = 3;
@@ -104,7 +123,8 @@ export class HybridGenerator {
       if (astRes.isValid) {
         onLog(5, '[VALIDATION] AST Validation Passed');
       } else {
-        onLog(5, `[VALIDATION] AST Validation Failed: ${astRes.errors.length} errors`);
+        const rootError = astRes.errors[0];
+        onLog(5, `Root Cause:\n${rootError.file}\n${rootError.message}\nLine ${rootError.line}`);
       }
 
       // --- React Structure Validation ---
@@ -151,7 +171,8 @@ export class HybridGenerator {
       if (!buildPassed) {
         if (repairAttempts >= maxRepairAttempts) {
           onLog(5, `[VALIDATION] Validation/Build failed after ${maxRepairAttempts} repair attempts.`);
-          throw new Error(`Validation/Build failed. Errors:\n${allErrors.slice(0, 10).join('\n')}`);
+          const formattedErrors = allErrors.slice(0, 10).map((e: any) => typeof e === 'string' ? e : `[${e.file}] ${e.message}`).join('\n');
+          throw new Error(`Validation/Build failed. Errors:\n${formattedErrors}`);
         }
 
         if (repairAttempts > 0 && allErrors.length > previousErrorCount) {
@@ -174,6 +195,14 @@ export class HybridGenerator {
     }
 
     onLog(5, '[hybrid-generator] All packages validated.');
+
+    // === STEP 6.5: Functional Flow Validation ===
+    onLog(5, '[hybrid-generator] Running Functional Flow Validation...');
+    const flowRes = await FunctionalFlowValidator.validate(targetDir, reqs);
+    if (!flowRes.isValid) {
+      const err = flowRes.errors[0];
+      throw new Error(`Entity: ${err.entity}\nMissing: ${err.missing}`);
+    }
 
     // === STEP 7: Metadata ===
     onLog(5, '[hybrid-generator] Updating project metadata...');
@@ -348,6 +377,40 @@ pnpm run dev
     return match ? match[1].trim() : text.trim();
   }
 
+  private static async generateValidCode(provider: any, prompt: string, isTsx: boolean, onLog: (level: number, msg: string) => void): Promise<string> {
+    let attempts = 0;
+    const maxRetries = 3;
+    let lastContent = '';
+    
+    while (attempts < maxRetries) {
+      attempts++;
+      const aiResponse = await this.generateTextWithRetry(provider, prompt);
+      
+      let code = OutputSanitizer.sanitize(aiResponse);
+      if (!code) {
+        code = this.extractCodeBlock(aiResponse);
+        code = OutputSanitizer.sanitize(code);
+      }
+      
+      lastContent = code;
+      const syntaxGate = SyntaxGate.validate(code, isTsx);
+      if (!syntaxGate.isValid) {
+        onLog(4, `[WARN] SyntaxGate failed (Attempt ${attempts}/${maxRetries}): ${syntaxGate.error}`);
+        continue;
+      }
+      
+      const compileGate = CompileGate.validate(code, isTsx);
+      if (!compileGate.isValid) {
+        onLog(4, `[WARN] CompileGate failed (Attempt ${attempts}/${maxRetries}): ${compileGate.error}`);
+        continue;
+      }
+      
+      return code;
+    }
+    
+    throw new Error(`Generation gates failed after ${maxRetries} attempts. Generation aborted for this artifact.`);
+  }
+
   private static async generateFrontendPackage(frontendDir: string, reqs: NormalizedRequirements, onLog: (step: number, message: string) => void): Promise<void> {
     const provider = ProviderFactory.getProvider();
     await fs.mkdir(frontendDir, { recursive: true });
@@ -465,6 +528,41 @@ body {
 
     const arch = reqs.frontendArchitecture;
 
+    // === App.tsx ===
+    let appTsx = `import React from 'react'\nimport { BrowserRouter, Routes, Route } from 'react-router-dom'\n`;
+    if (arch && arch.pages.length > 0) {
+      for (const page of arch.pages) {
+        appTsx += `import ${page.componentName} from './pages/${page.componentName}'\n`;
+      }
+    }
+    appTsx += `\nfunction App() {\n  return (\n    <BrowserRouter>\n      <Routes>\n`;
+    if (arch && arch.pages.length > 0) {
+      for (const page of arch.pages) {
+        appTsx += `        <Route path="${page.route}" element={<${page.componentName} />} />\n`;
+      }
+    } else {
+      appTsx += `        <Route path="/" element={
+          <div className="min-h-screen bg-slate-950 flex items-center justify-center relative overflow-hidden">
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/30 blur-[120px] rounded-full mix-blend-screen" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-rose-600/20 blur-[120px] rounded-full mix-blend-screen" />
+            <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-indigo-300 text-sm font-medium mb-8 backdrop-blur-md">
+                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                ${reqs.appType}
+              </div>
+              <h1 className="text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-indigo-300 mb-6 tracking-tight">
+                ${reqs.appName}
+              </h1>
+              <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+                A next-generation platform featuring ${reqs.features.slice(0,3).join(', ')} and more.
+              </p>
+            </div>
+          </div>
+        } />\n`;
+    }
+    appTsx += `      </Routes>\n    </BrowserRouter>\n  )\n}\n\nexport default App\n`;
+    await fs.writeFile(path.join(srcDir, 'App.tsx'), appTsx);
+
     // === Generate components ===
     if (arch && arch.components.length > 0) {
       for (const comp of arch.components) {
@@ -484,15 +582,14 @@ Requirements:
 - Accept props via a typed interface and export the component as default export.
 - Add reasonable interactive elements, hover states, and animations.
 - Do NOT import any relative files, pages, hooks, or services. All styling and rendering logic must be self-contained in this single component file.
-- Output ONLY the raw TSX code within a markdown code block. Do not include conversational text.
+- Return ONLY valid TypeScript/TSX source code. Do not include: explanations, markdown, reasoning, XML tags, think tags, or comments describing the solution.
 `;
         try {
-          const aiResponse = await this.generateTextWithRetry(provider, prompt);
-          const compTsx = this.extractCodeBlock(aiResponse);
+          const compTsx = await this.generateValidCode(provider, prompt, true, onLog);
           await fs.writeFile(path.join(srcDir, 'components', `${comp.name}.tsx`), compTsx);
         } catch (e: any) {
-          onLog(4, `[WARN] Failed to generate component ${comp.name}: ${e.message}`);
-          if (this.isDailyRateLimit(e)) throw e;
+          onLog(4, `[FATAL] Generation Failed: Invalid AI output detected. (${e.message})`);
+          throw e;
         }
       }
     }
@@ -517,23 +614,23 @@ Requirements:
 - Provide realistic default implementations or fallbacks if the API key or endpoint fails.
 - Do NOT import any relative modules or non-existent files. All helper functions and domain logic must be contained entirely within this single file.
 - If using try/catch, DO NOT type the catch variable as \`any\` (e.g. use \`catch (e)\` or \`catch (error)\`, NOT \`catch (e: any)\`).
-- Output ONLY the raw TS code within a markdown code block. Do not include conversational text.
+- Return ONLY valid TypeScript/TSX source code. Do not include: explanations, markdown, reasoning, XML tags, think tags, or comments describing the solution.
 `;
         try {
-          const aiResponse = await this.generateTextWithRetry(provider, prompt);
-          const svcTs = this.extractCodeBlock(aiResponse);
+          const svcTs = await this.generateValidCode(provider, prompt, false, onLog);
           await fs.writeFile(path.join(srcDir, 'services', `${svc.name}.ts`), svcTs);
         } catch (e: any) {
-          onLog(4, `[WARN] Failed to generate service ${svc.name}: ${e.message}`);
-          if (this.isDailyRateLimit(e)) throw e;
+          onLog(4, `[FATAL] Generation Failed: Invalid AI output detected. (${e.message})`);
+          throw e;
         }
       }
     }
 
-    // === Generate hooks (with service interface injection) ===
+    // === Generate hooks (with service-aware prompt conditioning) ===
     const serviceSignatures: Record<string, string> = {};
-    if (arch && arch.services.length > 0) {
-      for (const svc of arch.services) {
+    const hasServices = arch ? arch.services.length > 0 : false;
+    if (hasServices) {
+      for (const svc of arch!.services) {
         try {
           const svcCode = await fs.readFile(path.join(srcDir, 'services', `${svc.name}.ts`), 'utf-8');
           serviceSignatures[svc.name] = svcCode;
@@ -544,11 +641,26 @@ Requirements:
     if (arch && arch.hooks.length > 0) {
       for (const hook of arch.hooks) {
         onLog(4, `[hybrid-generator] Generating AI Hook: ${hook.name}...`);
-        
-        const servicesList = arch.services.map(s => s.name).join(', ');
-        let serviceContext = `Available services: ${servicesList}`;
-        for (const [svcName, svcCode] of Object.entries(serviceSignatures)) {
-          serviceContext += `\n\n--- Service: ${svcName} (../services/${svcName}) ---\n${svcCode.substring(0, 1500)}`;
+
+        let serviceBlock: string;
+        let serviceRequirements: string;
+
+        if (hasServices && Object.keys(serviceSignatures).length > 0) {
+          const servicesList = arch.services.map(s => s.name).join(', ');
+          let serviceContext = `Available services: ${servicesList}`;
+          for (const [svcName, svcCode] of Object.entries(serviceSignatures)) {
+            serviceContext += `\n\n--- Service: ${svcName} (../services/${svcName}) ---\n${svcCode.substring(0, 1500)}`;
+          }
+          serviceBlock = `Context — ACTUAL SERVICE CODE (you MUST use only the method names shown here):\n${serviceContext}`;
+          serviceRequirements = `- Import services using named imports like: \`import { serviceName } from '../services/serviceName'\`.
+- CRITICAL: Only call methods that ACTUALLY EXIST in the service code shown above. Do NOT assume a service exports another service. Do NOT invent method names.
+- Do NOT import any relative modules or helper files other than the listed services.`;
+        } else {
+          serviceBlock = `IMPORTANT: This application has NO services. There are NO service files. The services/ directory does not exist.`;
+          serviceRequirements = `- CRITICAL: Do NOT import any service files. There are NO services in this application.
+- CRITICAL: Do NOT import any relative modules. No ./services, no ../services, no ./utils, no ./helpers.
+- All data and logic must be SELF-CONTAINED in this hook using React state (useState), localStorage, or in-memory computation.
+- Do NOT generate imports for files that do not exist.`;
         }
 
         const prompt = `You are an expert React developer building custom hooks for a ${reqs.appName} application.
@@ -557,26 +669,22 @@ App Features: ${reqs.features.join(', ')}
 Task: Write a fully functional custom React hook named "${hook.name}".
 Description: ${hook.description}
 
-Context — ACTUAL SERVICE CODE (you MUST use only the method names shown here):
-${serviceContext}
+${serviceBlock}
 
 Requirements:
 - Use standard React hooks (useState, useEffect, useCallback).
-- Import services using named imports like: \`import { ${servicesList} } from '../services/[serviceName]'\`. specifically match \`import { serviceName } from '../services/serviceName'\`.
-- CRITICAL: Only call methods that ACTUALLY EXIST in the service code shown above. Do NOT assume a service exports another service. Do NOT invent method names.
+${serviceRequirements}
 - Export the hook as a NAMED export: \`export function ${hook.name}(...) { ... }\` or \`export const ${hook.name} = (...) => { ... }\`. Do NOT use export default.
 - Return state (data, loading, error) and any relevant mutator/refresh functions.
-- Do NOT import any relative modules or helper files other than the listed services.
 - If using try/catch, DO NOT type the catch variable as \`any\` (e.g. use \`catch (e)\` or \`catch (error)\`, NOT \`catch (e: any)\`).
-- Output ONLY the raw TS code within a markdown code block. Do not include conversational text.
+- Return ONLY valid TypeScript/TSX source code. Do not include: explanations, markdown, reasoning, XML tags, think tags, or comments describing the solution.
 `;
         try {
-          const aiResponse = await this.generateTextWithRetry(provider, prompt);
-          const hookTs = this.extractCodeBlock(aiResponse);
+          const hookTs = await this.generateValidCode(provider, prompt, false, onLog);
           await fs.writeFile(path.join(srcDir, 'hooks', `${hook.name}.ts`), hookTs);
         } catch (e: any) {
-          onLog(4, `[WARN] Failed to generate hook ${hook.name}: ${e.message}`);
-          if (this.isDailyRateLimit(e)) throw e;
+          onLog(4, `[FATAL] Generation Failed: Invalid AI output detected. (${e.message})`);
+          throw e;
         }
       }
     }
@@ -640,15 +748,14 @@ Requirements:
 - Return the full React functional component as default export.
 - Do NOT import other pages, or components/hooks not in the lists above.
 - If using try/catch, DO NOT type the catch variable as \`any\` (e.g. use \`catch (e)\` or \`catch (error)\`, NOT \`catch (e: any)\`).
-- Output ONLY the raw TSX code within a markdown code block. Do not include conversational text.
+- Return ONLY valid TypeScript/TSX source code. Do not include: explanations, markdown, reasoning, XML tags, think tags, or comments describing the solution.
 `;
         try {
-          const aiResponse = await this.generateTextWithRetry(provider, prompt);
-          const pageTsx = this.extractCodeBlock(aiResponse);
+          const pageTsx = await this.generateValidCode(provider, prompt, true, onLog);
           await fs.writeFile(path.join(srcDir, 'pages', `${page.componentName}.tsx`), pageTsx);
         } catch (e: any) {
-          onLog(4, `[WARN] Failed to generate page ${page.componentName}: ${e.message}`);
-          if (this.isDailyRateLimit(e)) throw e;
+          onLog(4, `[FATAL] Generation Failed: Invalid AI output detected. (${e.message})`);
+          throw e;
         }
       }
     }
@@ -691,41 +798,43 @@ Requirements:
     }
     await fs.writeFile(path.join(srcDir, 'pages', 'index.ts'), pagesIndex);
 
-    // App.tsx
-    let appTsx = `import React from 'react'\nimport { BrowserRouter, Routes, Route } from 'react-router-dom'\n`;
-    if (arch && arch.pages.length > 0) {
-      for (const page of arch.pages) {
-        appTsx += `import ${page.componentName} from './pages/${page.componentName}'\n`;
+    // === IMPORT INTEGRITY VALIDATION ===
+    // After all files are generated, validate every relative import resolves.
+    // If broken imports are found, strip them deterministically (no AI involved).
+    const projectRoot = path.dirname(frontendDir); // frontendDir = targetDir/frontend
+    onLog(4, '[hybrid-generator] Running Import Integrity Validation...');
+    const importResult = await ImportIntegrityValidator.validate(projectRoot);
+    if (!importResult.isValid) {
+      onLog(4, `[hybrid-generator] Found ${importResult.errors.length} broken import(s). Stripping...`);
+      const brokenByFile = new Map<string, Set<string>>();
+      for (const err of importResult.errors) {
+        const absPath = path.join(projectRoot, err.file);
+        if (!brokenByFile.has(absPath)) {
+          brokenByFile.set(absPath, new Set());
+        }
+        brokenByFile.get(absPath)!.add(err.importPath);
       }
-    }
-    appTsx += `\nfunction App() {\n  return (\n    <BrowserRouter>\n      <Routes>\n`;
-    if (arch && arch.pages.length > 0) {
-      for (const page of arch.pages) {
-        appTsx += `        <Route path="${page.route}" element={<${page.componentName} />} />\n`;
+
+      for (const [absFilePath, brokenPaths] of brokenByFile.entries()) {
+        onLog(4, `[hybrid-generator] Stripping ${brokenPaths.size} broken import(s) from ${path.relative(projectRoot, absFilePath)}`);
+        const cleaned = await ImportIntegrityValidator.stripBrokenImports(absFilePath, brokenPaths);
+        if (cleaned !== null) {
+          await fs.writeFile(absFilePath, cleaned, 'utf-8');
+        }
+      }
+
+      const recheck = await ImportIntegrityValidator.validate(projectRoot);
+      if (!recheck.isValid) {
+        onLog(4, `[hybrid-generator] WARNING: ${recheck.errors.length} broken import(s) remain after stripping.`);
+        for (const err of recheck.errors) {
+          onLog(4, `[hybrid-generator]   ${err.file}: import '${err.importPath}' → not found`);
+        }
+      } else {
+        onLog(4, '[hybrid-generator] Import Integrity Validation PASSED after cleanup.');
       }
     } else {
-      appTsx += `        <Route path="/" element={
-          <div className="min-h-screen bg-slate-950 flex items-center justify-center relative overflow-hidden">
-            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/30 blur-[120px] rounded-full mix-blend-screen" />
-            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-rose-600/20 blur-[120px] rounded-full mix-blend-screen" />
-            <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-indigo-300 text-sm font-medium mb-8 backdrop-blur-md">
-                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
-                ${reqs.appType}
-              </div>
-              <h1 className="text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-indigo-300 mb-6 tracking-tight">
-                ${reqs.appName}
-              </h1>
-              <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-                A next-generation platform featuring ${reqs.features.slice(0,3).join(', ')} and more.
-              </p>
-            </div>
-          </div>
-        } />\n`;
+      onLog(4, '[hybrid-generator] Import Integrity Validation PASSED.');
     }
-    appTsx += `      </Routes>\n    </BrowserRouter>\n  )\n}\n\nexport default App\n`;
-    await fs.writeFile(path.join(srcDir, 'App.tsx'), appTsx);
-
 
     const tsconfig = {
       compilerOptions: {
@@ -950,31 +1059,7 @@ ${prismaModels}
     return msg.includes('tokens per day') || msg.includes('TPD');
   }
 
-  private static async generateTextWithRetry(provider: any, prompt: string, maxRetries = 3, delayMs = 1500): Promise<string> {
-    let lastError: any = null;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        return await provider.generateText(prompt);
-      } catch (err: any) {
-        lastError = err;
-        const errMsg = err.message || '';
-        const errStr = JSON.stringify(err) || '';
-
-        // If daily token limit is exhausted, abort immediately
-        if (this.isDailyRateLimit(err)) {
-          throw new Error(`Daily API token limit exhausted. Cannot generate code. ${errMsg}`);
-        }
-
-        const isRateLimit = errMsg.includes('429') || errMsg.includes('rate_limit') || errMsg.includes('Rate limit') || errStr.includes('429');
-        
-        if (isRateLimit || attempt < maxRetries) {
-          const waitTime = isRateLimit ? delayMs * 2 * attempt : delayMs * attempt;
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-        } else {
-          throw err;
-        }
-      }
-    }
-    throw lastError;
+  private static async generateTextWithRetry(provider: any, prompt: string): Promise<string> {
+    return RequestQueue.enqueue(() => provider.generateText(prompt));
   }
 }

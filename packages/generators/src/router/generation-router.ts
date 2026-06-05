@@ -8,6 +8,9 @@ import { GeneratorQualityChecker } from '../validators/generator-quality-checker
 import { FunctionalValidator } from '../validators/functional-validator';
 import { CrudGenerator } from '../crud-generator';
 import { FrontendAIAnalyzer } from '../generators/frontend-ai-analyzer';
+import { RepairAgent } from '../agents/repair-agent';
+import { GeneratorObservability } from '../observability/observability-layer';
+import { MetricsTracker } from '../observability/metrics-tracker';
 
 
 /**
@@ -37,9 +40,16 @@ export class GenerationRouter {
 
     onLog(3, `[router] Selected generator: ${this.getGeneratorName(mode)}`);
 
+    const repairAttemptsLog: any[] = [];
+    const buildErrorsLog: string[] = [];
+    let qaScoreBreakdownLog: any = null;
+
+    const startTime = Date.now();
     let attempt = 1;
     const maxAttempts = 2;
     let isValidated = false;
+    let functionalSuccess = false;
+    let totalRepairs = 0;
 
     while (attempt <= maxAttempts && !isValidated) {
       Logger.info(`[router] Generation Attempt ${attempt}/${maxAttempts} for mode ${mode}`);
@@ -69,27 +79,55 @@ export class GenerationRouter {
 
         // --- Quality Checker ---
         onLog(5, `[router] Running static code quality checks (Attempt ${attempt})...`);
-        const qualityCheck = await GeneratorQualityChecker.validate(targetDir, reqs);
+        let qualityCheck = await GeneratorQualityChecker.validate(targetDir, reqs);
+        
+        if (!qualityCheck.passed) {
+          onLog(5, `[router] Quality checks failed. Invoking RepairAgent...`);
+          buildErrorsLog.push(...qualityCheck.errors);
+          const repaired = await RepairAgent.repair(targetDir, qualityCheck.errors);
+          totalRepairs++;
+          repairAttemptsLog.push({
+            attempt,
+            stage: 'quality-checks',
+            errors: [...qualityCheck.errors],
+            repaired
+          });
+          if (repaired) {
+            onLog(5, `[router] RepairAgent applied fixes. Re-running quality checks...`);
+            qualityCheck = await GeneratorQualityChecker.validate(targetDir, reqs);
+            if (!qualityCheck.passed) {
+              buildErrorsLog.push(...qualityCheck.errors);
+            }
+          } else {
+            onLog(5, `[router] RepairAgent could not fix the errors.`);
+          }
+        }
         
         // --- Functional QA ---
         onLog(5, `[router] Running AI Functional Completeness QA (Attempt ${attempt})...`);
         const validation = await FunctionalValidator.validate(targetDir, reqs);
+        qaScoreBreakdownLog = validation;
 
         if (qualityCheck.passed && validation.score >= 90) {
           onLog(6, `[router] Reliability checks PASSED! Functional QA Score: ${validation.score}/100.`);
           isValidated = true;
+          functionalSuccess = true;
+          onLog(5, `[router] Project generation completely successful. AST, TypeScript, and Functional Flow Validated.`);
           
-          // Write reliability score to metadata for dashboard tracking
           try {
-            const metadataPath = path.join(targetDir, 'metadata.json');
-            const metaContent = await fs.readFile(metadataPath, 'utf-8');
-            const meta = JSON.parse(metaContent);
-            meta.reliability = {
-              buildSuccess: true,
-              runtimeSuccess: true,
-              apiSuccess: validation.criteria.forms >= 80,
-              persistenceSuccess: validation.criteria.database >= 80,
-              score: validation.score
+            const metadataPath = path.join(targetDir, 'paperclip-metadata.json');
+            const meta = {
+              generatedAt: new Date().toISOString(),
+              appName: reqs.appName,
+              classifiedMode: mode,
+              score: validation.score,
+              reliability: {
+                buildSuccess: true,
+                runtimeSuccess: true,
+                apiSuccess: validation.criteria.forms >= 80,
+                persistenceSuccess: validation.criteria.database >= 80,
+                score: validation.score
+              }
             };
             await fs.writeFile(metadataPath, JSON.stringify(meta, null, 2), 'utf-8');
           } catch (e: any) {
@@ -100,6 +138,7 @@ export class GenerationRouter {
             ...qualityCheck.errors,
             ...(validation.score < 90 ? [`Functional QA score is too low: ${validation.score}/100 (Required: 90)`] : [])
           ];
+          buildErrorsLog.push(...errors);
           onLog(5, `[router] Reliability checks FAILED on attempt ${attempt}.`);
           errors.forEach(err => onLog(5, `[QA ERROR] ${err}`));
 
@@ -123,12 +162,32 @@ export class GenerationRouter {
         }
       } catch (err: any) {
         Logger.error(`[router] Error during generation attempt ${attempt}: ${err.message}`);
+        buildErrorsLog.push(err.message || String(err));
         if (attempt === maxAttempts) {
+          // Save observability report before throwing
+          await GeneratorObservability.save(targetDir, reqs, buildErrorsLog, qaScoreBreakdownLog, repairAttemptsLog);
+          await MetricsTracker.recordRun({
+            success: false,
+            buildSuccess: buildErrorsLog.length === 0,
+            functionalSuccess: false,
+            repairAttempts: totalRepairs,
+            generationTimeMs: Date.now() - startTime
+          });
           throw err;
         }
         attempt++;
       }
     }
+
+    // Save observability report on success
+    await GeneratorObservability.save(targetDir, reqs, buildErrorsLog, qaScoreBreakdownLog, repairAttemptsLog);
+    await MetricsTracker.recordRun({
+      success: isValidated,
+      buildSuccess: buildErrorsLog.length === 0,
+      functionalSuccess,
+      repairAttempts: totalRepairs,
+      generationTimeMs: Date.now() - startTime
+    });
 
     Logger.info(`[router] ═══════════════════════════════════════════`);
     Logger.info(`[router] Generation completed successfully for mode: ${mode}`);

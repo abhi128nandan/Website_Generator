@@ -1,0 +1,48 @@
+{
+  "id": "40070cb8-0e4b-45e5-a035-1c9f4c4eb1ca",
+  "status": "generating",
+  "createdAt": "2026-06-02T09:08:15.974Z",
+  "updatedAt": "2026-06-02T09:08:50.056Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [],
+  "appName": "To-Do App",
+  "appType": "crud-admin",
+  "frontend": [
+    "simple and responsive user interface"
+  ],
+  "backend": [
+    "secure data handling"
+  ],
+  "database": [
+    "database structure"
+  ],
+  "features": [
+    "task creation",
+    "task completion status",
+    "due dates",
+    "priority settings",
+    "task categorization"
+  ],
+  "workflows": [
+    "task management",
+    "activity organization",
+    "pending and completed task tracking"
+  ],
+  "entities": [
+    "tasks"
+  ],
+  "routes": [
+    "add, update, delete, and manage daily tasks"
+  ],
+  "classifiedMode": "crud-admin",
+  "generatorVersion": "1.0.0",
+  "workspaceIntegrity": true,
+  "reliability": {
+    "buildSuccess": true,
+    "runtimeSuccess": true,
+    "apiSuccess": true,
+    "persistenceSuccess": false,
+    "score": 90
+  }
+}

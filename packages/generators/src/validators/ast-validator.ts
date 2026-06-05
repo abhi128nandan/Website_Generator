@@ -2,9 +2,17 @@ import * as ts from 'typescript';
 import fs from 'fs/promises';
 import path from 'path';
 
+export interface ASTValidationError {
+  file: string;
+  line: number;
+  column: number;
+  code: string | number;
+  message: string;
+}
+
 export interface ASTValidationResult {
   isValid: boolean;
-  errors: string[];
+  errors: ASTValidationError[];
 }
 
 /**
@@ -14,7 +22,8 @@ export interface ASTValidationResult {
  * hundreds of false positives that waste all repair attempts.
  */
 const SKIP_DIAGNOSTIC_CODES = new Set([
-  2307,  // Cannot find module 'X' or its corresponding type declarations
+  // 2307 is NOT skipped globally — handled selectively below
+  //       (keep for relative imports, skip for npm packages)
   2503,  // Cannot find namespace 'X'
   2304,  // Cannot find name 'X' (often JSX intrinsics when react types missing)
   2580,  // Cannot find name 'require'
@@ -51,7 +60,8 @@ export class ASTValidator {
    * - Other structural TypeScript errors
    */
   static async validate(targetDir: string): Promise<ASTValidationResult> {
-    const srcDir = path.join(targetDir, 'frontend', 'src');
+    const frontendSrc = path.join(targetDir, 'frontend', 'src');
+    const backendSrc = path.join(targetDir, 'backend', 'src');
     
     // Find all ts and tsx files
     const fileNames: string[] = [];
@@ -60,6 +70,8 @@ export class ASTValidator {
         const entries = await fs.readdir(dir, { withFileTypes: true });
         for (const entry of entries) {
           const res = path.resolve(dir, entry.name);
+          if (res.includes('node_modules') || res.includes('dist') || res.includes('build') || res.includes('coverage') || res.includes('.generated') || res.includes('.logs')) continue;
+          
           if (entry.isDirectory()) {
             await collectFiles(res);
           } else if (res.endsWith('.ts') || res.endsWith('.tsx')) {
@@ -71,13 +83,14 @@ export class ASTValidator {
       }
     }
     
-    await collectFiles(srcDir);
+    await collectFiles(frontendSrc);
+    await collectFiles(backendSrc);
     
     if (fileNames.length === 0) {
-      return { isValid: false, errors: ['No TypeScript files found in frontend/src.'] };
+      return { isValid: false, errors: [{ file: 'unknown', line: 1, column: 1, code: 'NO_FILES', message: 'No TypeScript files found in frontend/src or backend/src.' }] };
     }
 
-    const errors: string[] = [];
+    const errors: ASTValidationError[] = [];
 
     // --- Phase 1: Syntax-only parsing (per-file) ---
     // Parse each file individually to catch syntax errors without type-checking
@@ -99,16 +112,28 @@ export class ASTValidator {
             if (diag.category !== ts.DiagnosticCategory.Error) continue;
             const { line, character } = ts.getLineAndCharacterOfPosition(sourceFile, diag.start!);
             const message = ts.flattenDiagnosticMessageText(diag.messageText, '\n');
-            const relName = path.relative(targetDir, fileName);
-            errors.push(`${relName}:${line + 1}:${character + 1} - [SYNTAX] ${message}`);
+            const relName = path.relative(targetDir, fileName).replace(/\\/g, '/');
+            errors.push({
+              file: relName,
+              line: line + 1,
+              column: character + 1,
+              code: diag.code || 'SYNTAX',
+              message: `[SYNTAX] ${message}`
+            });
           }
         }
 
         // --- Phase 2: Duplicate declaration detection (AST walk) ---
         ASTValidator.checkDuplicateDeclarations(sourceFile, targetDir, errors);
       } catch (e: any) {
-        const relName = path.relative(targetDir, fileName);
-        errors.push(`${relName} - Failed to parse: ${e.message}`);
+        const relName = path.relative(targetDir, fileName).replace(/\\/g, '/');
+        errors.push({
+          file: relName,
+          line: 1,
+          column: 1,
+          code: 'PARSE_FAILED',
+          message: `Failed to parse: ${e.message}`
+        });
       }
     }
 
@@ -123,7 +148,7 @@ export class ASTValidator {
       jsx: ts.JsxEmit.ReactJSX,
       esModuleInterop: true,
       skipLibCheck: true,
-      baseUrl: srcDir
+      baseUrl: targetDir
     });
 
     const diagnostics = ts.getPreEmitDiagnostics(program);
@@ -134,22 +159,60 @@ export class ASTValidator {
       // Skip diagnostics caused by missing node_modules
       if (SKIP_DIAGNOSTIC_CODES.has(diag.code)) return;
 
+      // TS2307 "Cannot find module" — selective handling:
+      // Keep the error for relative imports (./  ../) which indicate broken generated code.
+      // Skip for npm package imports which will resolve after pnpm install.
+      if (diag.code === 2307) {
+        const message = ts.flattenDiagnosticMessageText(diag.messageText, '\n');
+        // Extract module specifier from "Cannot find module './foo' or its corresponding type declarations."
+        const moduleMatch = message.match(/Cannot find module '([^']+)'/);
+        if (moduleMatch) {
+          const moduleName = moduleMatch[1];
+          if (!moduleName.startsWith('./') && !moduleName.startsWith('../')) {
+            // npm package — skip (will resolve after install)
+            return;
+          }
+          // relative import — this is a real bug, keep the error
+        }
+      }
+
       if (diag.file) {
         const { line, character } = ts.getLineAndCharacterOfPosition(diag.file, diag.start!);
         const message = ts.flattenDiagnosticMessageText(diag.messageText, '\n');
-        const fileName = path.relative(targetDir, diag.file.fileName);
-        errors.push(`${fileName}:${line + 1}:${character + 1} - [TS${diag.code}] ${message}`);
+        const fileName = path.relative(targetDir, diag.file.fileName).replace(/\\/g, '/');
+        errors.push({
+          file: fileName,
+          line: line + 1,
+          column: character + 1,
+          code: diag.code,
+          message: `[TS${diag.code}] ${message}`
+        });
       } else {
-        errors.push(`[TS${diag.code}] ${ts.flattenDiagnosticMessageText(diag.messageText, '\n')}`);
+        errors.push({
+          file: 'unknown',
+          line: 1,
+          column: 1,
+          code: diag.code,
+          message: `[TS${diag.code}] ${ts.flattenDiagnosticMessageText(diag.messageText, '\n')}`
+        });
       }
     });
-
-    // De-duplicate errors (syntax + semantic may overlap)
-    const uniqueErrors = [...new Set(errors)];
+    // De-duplicate errors: keep only the first error per file to stop cascading errors
+    const uniqueMap = new Map<string, ASTValidationError>();
+    for (const err of errors) {
+      // Use just the file as the key to only keep the very first root error found in that file
+      if (!uniqueMap.has(err.file)) {
+        uniqueMap.set(err.file, err);
+      }
+    }
+    const uniqueErrors = Array.from(uniqueMap.values());
+    
+    // Slice to maximum 20 root errors
+    const slicedErrors = uniqueErrors.slice(0, 20);
 
     return {
-      isValid: uniqueErrors.length === 0,
-      errors: uniqueErrors
+      isValid: errors.length === 0,
+      errors: slicedErrors
     };
   }
 
@@ -160,9 +223,9 @@ export class ASTValidator {
   private static checkDuplicateDeclarations(
     sourceFile: ts.SourceFile,
     targetDir: string,
-    errors: string[]
+    errors: ASTValidationError[]
   ): void {
-    const relName = path.relative(targetDir, sourceFile.fileName);
+    const relName = path.relative(targetDir, sourceFile.fileName).replace(/\\/g, '/');
     const topLevelNames = new Map<string, number>(); // name -> count
     let defaultExportCount = 0;
 
@@ -208,13 +271,38 @@ export class ASTValidator {
     // Report duplicate declarations
     for (const [name, count] of topLevelNames) {
       if (count > 1) {
-        errors.push(`${relName} - [DUPLICATE] Identifier '${name}' is declared ${count} times at the top level`);
+        errors.push({
+          file: relName,
+          line: 1,
+          column: 1,
+          code: 'DUPLICATE_DECLARATION',
+          message: `[DUPLICATE] Identifier '${name}' is declared ${count} times at the top level`
+        });
       }
     }
 
     // Report duplicate default exports
     if (defaultExportCount > 1) {
-      errors.push(`${relName} - [DUPLICATE] File has ${defaultExportCount} default exports (expected at most 1)`);
+      errors.push({
+        file: relName,
+        line: 1,
+        column: 1,
+        code: 'DUPLICATE_DEFAULT_EXPORT',
+        message: `[DUPLICATE] File has ${defaultExportCount} default exports (expected at most 1)`
+      });
+    }
+
+    // Special Rule: Check for missing default exports in frontend/src/pages
+    if (relName.includes('frontend/src/pages/') || relName.includes('src/pages/')) {
+      if (defaultExportCount !== 1) {
+        errors.push({
+          file: relName,
+          line: 1,
+          column: 1,
+          code: 'PAGE_DEFAULT_EXPORT_MISSING',
+          message: 'Page must export exactly one default component'
+        });
+      }
     }
   }
 }

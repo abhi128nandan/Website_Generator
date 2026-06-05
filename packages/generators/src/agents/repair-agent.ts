@@ -18,7 +18,7 @@ export class RepairAgent {
     }
   }
 
-  static async repair(targetDir: string, errors: string[]): Promise<boolean> {
+  static async repair(targetDir: string, errors: any[]): Promise<boolean> {
     Logger.info(`[RepairAgent] Attempting to repair generated files. Error count: ${errors.length}`);
     const provider = ProviderFactory.getProvider();
     
@@ -26,18 +26,24 @@ export class RepairAgent {
     // Example error format: "frontend/src/App.tsx:10:5 - error TS1234: message" or build error mentioning a file
     const fileSet = new Set<string>();
     for (const err of errors) {
-      const match = err.match(/(frontend[\\/]src[\\/][^:]+\.tsx?)/);
-      if (match) {
-        fileSet.add(match[1]);
+      if (typeof err === 'object' && err !== null && 'file' in err) {
+        fileSet.add(err.file);
+      } else if (typeof err === 'string') {
+        const match = err.match(/(frontend[\\/]src[\\/][^:]+\.tsx?)/);
+        if (match) {
+          fileSet.add(match[1].replace(/\\/g, '/'));
+        }
       }
     }
 
     // If no specific files detected, try looking at vite/tsc build errors
     if (fileSet.size === 0) {
       for (const err of errors) {
-        const match = err.match(/src[\\/]([^:]+\.tsx?)/);
-        if (match) {
-          fileSet.add('frontend/src/' + match[1].replace(/\\/g, '/'));
+        if (typeof err === 'string') {
+          const match = err.match(/src[\\/]([^:]+\.tsx?)/);
+          if (match) {
+            fileSet.add('frontend/src/' + match[1].replace(/\\/g, '/'));
+          }
         }
       }
     }
@@ -85,17 +91,46 @@ ${fileContent}
 \`\`\`
 
 Reported Errors:
-${errors.join('\n').substring(0, 2000)}
+${errors.map((e: any) => typeof e === 'string' ? e : JSON.stringify(e)).join('\n').substring(0, 2000)}
 
 Requirements:
 - Fix the errors mentioned.
 - Ensure all imports resolve correctly.
 - Fix any duplicate declarations or syntax errors.
+- CRITICAL: Do NOT add new import statements for files that don't exist. If an error is about a missing module (TS2307 "Cannot find module"), REMOVE the broken import line and remove all references to the imported symbols. Inline the logic or use React state instead.
+- CRITICAL: Do NOT create, reference, or assume the existence of any file not already imported successfully. Only use imports that are already resolving without errors.
+- If a service, utility, or helper file is missing, do NOT import it. Implement the needed logic directly in this file.
 - Output ONLY the raw corrected TS/TSX code within a markdown code block. Do not include conversational text or explanations.
 `;
 
+      let response = '';
+      let success = false;
+      const retries = 5;
+      const delay = 10000;
+
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          response = await provider.generateText(prompt);
+          success = true;
+          break;
+        } catch (err: any) {
+          const errMsg = err.message || '';
+          const errStr = JSON.stringify(err) || '';
+          const isRateLimit = errMsg.includes('429') || errMsg.includes('rate_limit') || errMsg.includes('Rate limit') || errStr.includes('429');
+
+          if (isRateLimit && attempt < retries) {
+            const waitTime = delay * 2 * attempt;
+            Logger.info(`[RepairAgent] Rate limit hit for ${relFilePath}. Retrying in ${waitTime / 1000}s (attempt ${attempt}/${retries})...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+          } else if (attempt === retries) {
+            throw err;
+          } else {
+            await new Promise(resolve => setTimeout(resolve, delay * attempt));
+          }
+        }
+      }
+
       try {
-        const response = await provider.generateText(prompt);
         const codeMatch = response.match(/```[a-z]*\n([\s\S]*?)```/);
         const correctedCode = codeMatch ? codeMatch[1].trim() : response.trim();
         await fs.writeFile(absPath, correctedCode);

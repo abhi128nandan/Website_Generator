@@ -1,0 +1,23 @@
+{
+  "name": "@srs-gen/parser",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "lint": "eslint \"src/**/*.ts*\"",
+    "test": "tsx src/__tests__/parser.test.ts"
+  },
+  "dependencies": {
+    "@paperclip/shared": "workspace:*",
+    "pdf-parse": "1.1.1",
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "@types/pdf-parse": "^1.1.5",
+    "tsx": "^4.19.4",
+    "typescript": "^5.9.3"
+  }
+}

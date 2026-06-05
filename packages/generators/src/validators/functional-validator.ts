@@ -119,8 +119,35 @@ Output ONLY a JSON object matching this structure:
       // Recalculate overall score based on the updated criteria
       const crit = parsed.criteria;
       if (crit) {
-        const sum = (crit.architecture || 100) + (crit.typeScriptCompile || 100) + (crit.importResolution || 100) + (crit.reactStructure || 100) + (crit.buildSuccess || 100) + (crit.businessLogic || 0) + (crit.frontend || 0) + (crit.navigation || 0) + (crit.forms || 0) + (crit.validation || 0);
-        parsed.score = Math.round(sum / 10);
+        const isFallback = !reqs.architecture && reqs.classifiedMode !== 'frontend-app';
+        if (isFallback) {
+          Logger.warn('[FunctionalValidator] Fallback generation detected. Applying heavy penalty.');
+          crit.architecture = 0;
+          crit.businessLogic = Math.min(crit.businessLogic || 0, 20);
+        }
+
+        // Ensure architecture success/schema success are weighted properly
+        const weights: Record<string, number> = {
+          architecture: 3.0,
+          businessLogic: 2.0,
+          frontend: 1.5,
+          forms: 1.5,
+          validation: 1.0,
+          typeScriptCompile: 1.0,
+          importResolution: 1.0,
+          reactStructure: 1.0,
+          buildSuccess: 1.0,
+          navigation: 1.0
+        };
+
+        let sum = 0;
+        let totalWeight = 0;
+        for (const [key, weight] of Object.entries(weights)) {
+          sum += (crit[key as keyof typeof crit] || 0) * weight;
+          totalWeight += weight;
+        }
+        
+        parsed.score = Math.round(sum / totalWeight);
       }
 
       const validationResult = ValidationSchema.parse(parsed);

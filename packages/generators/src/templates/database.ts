@@ -64,7 +64,8 @@ generator client {
 
       while (!isValid && maxRetries > 0) {
         try {
-          const normalizedEntities = RelationNormalizer.normalize(currentEntities);
+          // Entities are already normalized by the central extraction pipeline
+          const normalizedEntities = currentEntities;
           
           // Internal Pre-compilation check
           RelationNormalizer.validate(normalizedEntities);

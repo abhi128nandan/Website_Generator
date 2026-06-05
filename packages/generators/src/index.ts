@@ -7,6 +7,7 @@ import { BackendGenerator } from './templates/backend';
 import { DatabaseGenerator } from './templates/database';
 import { CrudGenerator } from './crud-generator';
 import { FunctionalValidator } from './validators/functional-validator';
+import { RelationNormalizer } from './compiler/relation-normalizer';
 
 // --- Multi-Mode Generation Exports ---
 export { GenerationRouter } from './router/generation-router';
@@ -14,6 +15,7 @@ export { FrontendAppGenerator } from './generators/frontend-generator';
 export { HybridGenerator } from './generators/hybrid-generator';
 export { FrontendAIAnalyzer } from './generators/frontend-ai-analyzer';
 export { GeneratorQualityChecker } from './validators/generator-quality-checker';
+export { GeneratorObservability } from './observability/observability-layer';
 
 
 
@@ -37,9 +39,25 @@ export class Scaffolder {
     const { EnvGenerator } = require('./runtime/env-generator');
     await EnvGenerator.generate(targetDir, reqs.appName);
     
+    // Check for existing schema to prevent field disappearance during regeneration
+    let existingEntities: any[] = [];
+    try {
+      const existingSchema = await fs.readFile(path.join(targetDir, 'database/prisma/schema.prisma'), 'utf-8');
+      existingEntities = RelationNormalizer.parseExistingSchema(existingSchema);
+      onLog(3, `[generator] Found existing Prisma schema with ${existingEntities.length} models for preservation.`);
+    } catch {
+      // No existing schema
+    }
+
     // === AI ARCHITECTURE ANALYSIS ===
     onLog(3, '[generator] Executing AI architecture analysis...');
     await CrudGenerator.analyze(reqs);
+    
+    // === CANONICAL ENTITY NORMALIZATION ===
+    if (reqs.architecture && reqs.architecture.entities) {
+      onLog(3, '[generator] Applying canonical entity normalization & field preservation...');
+      reqs.architecture.entities = RelationNormalizer.normalize(reqs.architecture.entities, existingEntities) as any;
+    }
     
     // Validate root files exist before proceeding
     await RootWorkspaceGenerator.validate(targetDir);

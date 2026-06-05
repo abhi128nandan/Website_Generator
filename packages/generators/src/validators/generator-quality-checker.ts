@@ -1,7 +1,10 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { NormalizedRequirements, Logger } from '@paperclip/shared';
+import { exec } from 'child_process';
+import util from 'util';
 
+const execPromise = util.promisify(exec);
 export interface QualityValidationResult {
   passed: boolean;
   errors: string[];
@@ -50,6 +53,23 @@ export class GeneratorQualityChecker {
             errors.push(`Required hook file is missing: frontend/src/hooks/${hook.name}.ts`);
           }
         }
+      }
+    }
+
+    // --- 1.5. File Integrity Check ---
+    const essentialFiles = [
+      path.join(frontendDir, 'src', 'App.tsx'),
+      path.join(frontendDir, 'src', 'main.tsx'),
+      path.join(frontendDir, 'package.json'),
+      path.join(frontendDir, 'index.html'),
+    ];
+
+    for (const filePath of essentialFiles) {
+      try {
+        await fs.access(filePath);
+      } catch {
+        const relPath = path.relative(targetDir, filePath);
+        errors.push(`[Integrity] Essential file is missing: ${relPath}`);
       }
     }
 
@@ -163,6 +183,20 @@ export class GeneratorQualityChecker {
         }
       });
     } catch {}
+
+    // --- 4. Build Validation ---
+    try {
+      await fs.access(frontendDir);
+      Logger.info(`[QualityChecker] Running build validation in ${frontendDir}...`);
+      try {
+        await execPromise('pnpm install --no-frozen-lockfile', { cwd: frontendDir });
+        await execPromise('pnpm build', { cwd: frontendDir });
+      } catch (e: any) {
+        errors.push(`[Build Error] Frontend build failed:\n${e.stdout}\n${e.stderr}\n${e.message}`);
+      }
+    } catch {
+      // frontend dir doesn't exist, skip build
+    }
 
     const passed = errors.length === 0;
     Logger.info(`[QualityChecker] Quality validation complete. Passed: ${passed}. Errors found: ${errors.length}`);

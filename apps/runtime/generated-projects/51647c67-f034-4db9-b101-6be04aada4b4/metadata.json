@@ -1,0 +1,205 @@
+{
+  "id": "51647c67-f034-4db9-b101-6be04aada4b4",
+  "status": "failed",
+  "createdAt": "2026-06-05T11:52:16.771Z",
+  "updatedAt": "2026-06-05T11:54:05.404Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [
+    "Project generation failed reliability and quality validation checks:\n- Functional QA score is too low: 71/100 (Required: 90)"
+  ],
+  "appName": "TodoManager",
+  "appType": "crud-admin",
+  "frontend": [
+    "React",
+    "Responsive UI"
+  ],
+  "backend": [
+    "Node.js",
+    "Express.js"
+  ],
+  "database": [
+    "MongoDB"
+  ],
+  "features": [
+    "Task creation with title/description",
+    "Task status tracking (completed/pending)",
+    "Due date and priority settings",
+    "Task categorization",
+    "Cross-device compatibility",
+    "Task creation form with validation for due date and priority",
+    "Task completion marking functionality",
+    "Filtering interface by category/priority",
+    "Expired task deletion mechanism",
+    "Interactive task list display",
+    "Status update functionality",
+    "Missing route components for task management pages"
+  ],
+  "workflows": [
+    "User creates a task with due date and priority",
+    "User marks task as completed",
+    "User filters tasks by category/priority",
+    "User deletes expired tasks",
+    "Implement missing business logic and validation"
+  ],
+  "entities": [
+    {
+      "name": "Task",
+      "fields": [
+        "title",
+        "description",
+        "dueDate",
+        "priority",
+        "status",
+        "category"
+      ],
+      "validations": [
+        "title must not be empty",
+        "dueDate must be a valid future date",
+        "priority must be between 1-5"
+      ],
+      "relationships": [
+        "1:N with User (future authentication module)"
+      ]
+    }
+  ],
+  "routes": [
+    "GET /tasks",
+    "POST /tasks",
+    "PUT /tasks/:id",
+    "DELETE /tasks/:id",
+    "GET /categories"
+  ],
+  "classifiedMode": "crud-admin",
+  "architecture": {
+    "entities": [
+      {
+        "name": "Task",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "isRequired": true,
+            "isId": true,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@id",
+              "@default(uuid())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "isRequired": false,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "dueDate",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "priority",
+            "type": "TaskPriority",
+            "isRequired": false,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@default(LOW)"
+            ],
+            "isList": false
+          },
+          {
+            "name": "status",
+            "type": "TaskStatus",
+            "isRequired": false,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@default(PENDING)"
+            ],
+            "isList": false
+          },
+          {
+            "name": "category",
+            "type": "String",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@default(now())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@updatedAt"
+            ],
+            "isList": false
+          }
+        ]
+      }
+    ],
+    "endpoints": [
+      {
+        "path": "/api/tasks",
+        "method": "GET",
+        "entity": "Task",
+        "description": "Retrieve all tasks with optional filtering by category/priority",
+        "businessLogic": "Apply query parameters for category and priority filters. Return paginated results with status and dueDate sorting."
+      },
+      {
+        "path": "/api/tasks",
+        "method": "POST",
+        "entity": "Task",
+        "description": "Create a new task with validation for required fields",
+        "businessLogic": "Validate title is non-empty, dueDate is future date, priority is 1-5. Generate UUID for id. Set createdAt and updatedAt timestamps."
+      }
+    ],
+    "pages": [],
+    "navigation": []
+  },
+  "generatorVersion": "1.0.0",
+  "workspaceIntegrity": true,
+  "errorCategory": "BUILD FAILED"
+}

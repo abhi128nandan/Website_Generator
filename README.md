@@ -10,8 +10,8 @@ Paperclip Core operates as a monorepo consisting of dedicated workspace packages
 
 ```mermaid
 graph TD
-    User([User Prompt / SRS Document]) --> Web[apps/web React UI]
-    Web --> Server[apps/server API gateway]
+    User([User Prompt / SRS Document]) --> Web[apps/paperclip-frontend React UI]
+    Web --> Server[apps/paperclip-backend API gateway]
     Server --> Autonomy[packages/autonomy Orchestrator]
     Autonomy --> Router[packages/generators Router]
     Router --> Extractor[packages/ai-engine extractor]
@@ -24,8 +24,8 @@ graph TD
 ```
 
 ### Key Modules:
-- **`apps/web`**: The main React + Vite frontend dashboard where users view project statuses, manage files, and interact with live preview processes.
-- **`apps/server`**: The gateway API that handles generation requests, tracks active processes, and manages the project registry database.
+- **`apps/paperclip-frontend`**: The main React + Vite frontend dashboard where users view project statuses, manage files, and interact with live preview processes.
+- **`apps/paperclip-backend`**: The gateway API that handles generation requests, tracks active processes, and manages the project registry database.
 - **`packages/ai-engine`**: Integrates Groq, OpenRouter, and Ollama clients for schema extraction and code writing.
 - **`packages/generators`**: The templating engine, route classification, and validator suite (AST parsing, React tree structure, and functional verification).
 - **`packages/autonomy`**: Orchestrates pipelines, captures execution checkpoints, and manages automated recovery loops.
@@ -89,8 +89,8 @@ graph TD
 paperclip-core/
 ├── agents/                  # [Placeholder] AI Agent templates
 ├── apps/
-│   ├── server/              # Express API Server
-│   └── web/                 # React UI Client
+│   ├── paperclip-backend/   # Express API Server
+│   └── paperclip-frontend/  # React UI Client
 ├── docs/
 │   ├── architecture/        # System design & API documentations
 │   ├── integrations/        # LLM integration guides

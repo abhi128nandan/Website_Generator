@@ -1,3 +1,23 @@
+export interface ContractField {
+  name: string;
+  type: 'String' | 'Int' | 'Float' | 'Boolean' | 'DateTime';
+  required?: boolean;
+  isId?: boolean;
+  isUnique?: boolean;
+  isRelation?: boolean;
+  relationTarget?: string;
+  isArray?: boolean;
+  hasDefault?: boolean;
+}
+
+export interface ContractDefinition {
+  appName: string;
+  entities: {
+    entity: string;
+    fields: ContractField[];
+  }[];
+}
+
 export interface User {
   id: string;
   email: string;
@@ -39,13 +59,24 @@ import { z } from 'zod';
 export const RequirementsSchema = z.object({
   appName: z.string().min(1, 'App name cannot be empty'),
   appType: z.string().min(1, 'App type cannot be empty'),
-  frontend: z.array(z.string()),
-  backend: z.array(z.string()),
-  database: z.array(z.string()),
+  frontend: z.array(z.string()).default([]),
+  backend: z.array(z.string()).default([]),
+  database: z.array(z.string()).default([]),
   features: z.array(z.string()).min(1, 'Must extract at least one feature'),
-  workflows: z.array(z.string()),
-  entities: z.array(z.string()),
-  routes: z.array(z.string()),
+  workflows: z.array(z.string()).default([]),
+  entities: z.array(
+    z.union([
+      z.string(),
+      z.object({
+        name: z.string(),
+        fields: z.array(z.string()).optional(),
+        validations: z.array(z.string()).optional(),
+        relationships: z.array(z.string()).optional(),
+      }),
+      z.any()
+    ])
+  ).default([]),
+  routes: z.array(z.string()).default([]),
 });
 
 export const CrudArchitectureSchema = z.object({
@@ -58,16 +89,18 @@ export const CrudArchitectureSchema = z.object({
       isId: z.boolean().optional(),
       isUnique: z.boolean().optional(),
       isRelation: z.boolean().optional(),
-      relationTarget: z.string().optional()
-    }))
-  })),
+      relationTarget: z.string().optional(),
+      isArray: z.boolean().optional(),
+      hasDefault: z.boolean().optional()
+    })).default([])
+  })).default([]),
   endpoints: z.array(z.object({
     path: z.string(),
     method: z.enum(['GET', 'POST', 'PUT', 'DELETE']),
     entity: z.string().optional(),
     description: z.string(),
     businessLogic: z.string().optional()
-  })),
+  })).default([]),
   pages: z.array(z.object({
     route: z.string(),
     componentName: z.string(),
@@ -75,11 +108,11 @@ export const CrudArchitectureSchema = z.object({
     description: z.string(),
     features: z.array(z.string()).optional(),
     isDashboard: z.boolean().optional()
-  })),
+  })).default([]),
   navigation: z.array(z.object({
     label: z.string(),
     route: z.string()
-  })).optional()
+  })).optional().default([])
 });
 
 export const ValidationSchema = z.object({
@@ -124,21 +157,21 @@ export const FrontendArchitectureSchema = z.object({
     name: z.string(),
     type: z.enum(['page', 'component', 'layout']),
     description: z.string(),
-  })),
+  })).default([]),
   services: z.array(z.object({
     name: z.string(),
     description: z.string(),
     externalApi: z.string().nullable().optional(),
-  })),
+  })).default([]),
   hooks: z.array(z.object({
     name: z.string(),
     description: z.string(),
-  })),
+  })).default([]),
   pages: z.array(z.object({
     route: z.string(),
     componentName: z.string(),
     description: z.string(),
-  })),
+  })).default([]),
 });
 
 export type FrontendArchitecture = z.infer<typeof FrontendArchitectureSchema>;
@@ -161,6 +194,7 @@ export interface GeneratedProject {
   name: string;
   createdAt: string;
   status: 'generating' | 'completed' | 'error';
+  errorCategory?: string;
   stack?: string[];
   inputType?: 'upload' | 'text';
   generatedFiles?: string[];

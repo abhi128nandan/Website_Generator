@@ -8,7 +8,12 @@ import util from 'util';
 import { ASTValidator } from '../validators/ast-validator';
 import { ReactStructureValidator } from '../validators/react-structure-validator';
 import { PlaceholderValidator } from '../validators/placeholder-validator';
+import { ImportIntegrityValidator } from '../validators/import-integrity-validator';
 import { RepairAgent } from '../agents/repair-agent';
+import { OutputSanitizer } from '../validators/output-sanitizer';
+import { SyntaxGate } from '../validators/syntax-gate';
+import { CompileGate } from '../validators/compile-gate';
+import { RequestQueue } from '@paperclip/ai-engine';
 
 const execPromise = util.promisify(exec);
 /**
@@ -73,25 +78,34 @@ export class FrontendAppGenerator {
     }
     onLog(5, '[frontend-generator] All frontend files validated.');
 
-    // === STEP 4.5: Auto Repair Loop (Phase 7) ===
-    onLog(5, '[frontend-generator] Starting Auto Repair Loop...');
+    // === STEP 4.5: Generate Manifest ===
+    onLog(5, 'Creating generated-manifest.json...');
+    const manifest = {
+      pages: arch.pages?.map(p => p.componentName) || [],
+      components: arch.components?.map(c => c.name) || [],
+      hooks: arch.hooks?.map(h => h.name) || [],
+      services: arch.services?.map(s => s.name) || [],
+      routes: arch.pages?.map(p => p.route) || [],
+      prismaModels: []
+    };
+    await fs.writeFile(path.join(targetDir, 'generated-manifest.json'), JSON.stringify(manifest, null, 2));
+
+    // === STEP 5: Validation and Repair Loop ===
+    onLog(5, 'Starting validation and repair loop...');
     let buildPassed = false;
     let repairAttempts = 0;
     const maxRepairAttempts = 3;
     let previousErrorCount = Infinity;
 
-    while (!buildPassed && repairAttempts <= maxRepairAttempts) {
-      if (repairAttempts > 0) {
-        onLog(5, `[frontend-generator] Repair attempt ${repairAttempts}/${maxRepairAttempts}...`);
-      }
-
+    while (!buildPassed && repairAttempts < maxRepairAttempts) {
       // --- AST Validation ---
       onLog(5, '[VALIDATION] AST Validation Started');
       const astRes = await ASTValidator.validate(targetDir);
       if (astRes.isValid) {
         onLog(5, '[VALIDATION] AST Validation Passed');
       } else {
-        onLog(5, `[VALIDATION] AST Validation Failed: ${astRes.errors.length} errors`);
+        const rootError = astRes.errors[0];
+        onLog(5, `Root Cause:\n${rootError.file}\n${rootError.message}\nLine ${rootError.line}`);
       }
 
       // --- React Structure Validation ---
@@ -138,7 +152,8 @@ export class FrontendAppGenerator {
       if (!buildPassed) {
         if (repairAttempts >= maxRepairAttempts) {
           onLog(5, `[VALIDATION] Validation/Build failed after ${maxRepairAttempts} repair attempts.`);
-          throw new Error(`Validation/Build failed. Errors:\n${allErrors.slice(0, 10).join('\n')}`);
+          const formattedErrors = allErrors.slice(0, 10).map((e: any) => typeof e === 'string' ? e : `[${e.file}] ${e.message}`).join('\n');
+          throw new Error(`Validation/Build failed. Errors:\n${formattedErrors}`);
         }
 
         // Error regression check: if errors increased after repair, note it
@@ -292,6 +307,40 @@ pnpm run dev
     return match ? match[1].trim() : text.trim();
   }
 
+  private static async generateValidCode(provider: any, prompt: string, isTsx: boolean, onLog: (level: number, msg: string) => void): Promise<string> {
+    let attempts = 0;
+    const maxRetries = 3;
+    let lastContent = '';
+    
+    while (attempts < maxRetries) {
+      attempts++;
+      const aiResponse = await this.generateTextWithRetry(provider, prompt);
+      
+      let code = OutputSanitizer.sanitize(aiResponse);
+      if (!code) {
+        code = this.extractCodeBlock(aiResponse);
+        code = OutputSanitizer.sanitize(code);
+      }
+      
+      lastContent = code;
+      const syntaxGate = SyntaxGate.validate(code, isTsx);
+      if (!syntaxGate.isValid) {
+        onLog(4, `[WARN] SyntaxGate failed (Attempt ${attempts}/${maxRetries}): ${syntaxGate.error}`);
+        continue;
+      }
+      
+      const compileGate = CompileGate.validate(code, isTsx);
+      if (!compileGate.isValid) {
+        onLog(4, `[WARN] CompileGate failed (Attempt ${attempts}/${maxRetries}): ${compileGate.error}`);
+        continue;
+      }
+      
+      return code;
+    }
+    
+    throw new Error(`Generation gates failed after ${maxRetries} attempts. Generation aborted for this artifact.`);
+  }
+
   private static async generateFrontendPackage(frontendDir: string, reqs: NormalizedRequirements, onLog: (step: number, message: string) => void): Promise<void> {
     const provider = ProviderFactory.getProvider();
     await fs.mkdir(frontendDir, { recursive: true });
@@ -367,6 +416,42 @@ export default {
 `;
     await fs.writeFile(path.join(frontendDir, 'postcss.config.js'), postcssConfig);
 
+    // tsconfig.json
+    const tsconfigJson = `{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "types": ["vite/client"]
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}`;
+    await fs.writeFile(path.join(frontendDir, 'tsconfig.json'), tsconfigJson);
+
+    // tsconfig.node.json
+    const tsconfigNodeJson = `{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["vite.config.ts"]
+}`;
+    await fs.writeFile(path.join(frontendDir, 'tsconfig.node.json'), tsconfigNodeJson);
+
     // index.html
     const indexHtml = `<!doctype html>
 <html lang="en">
@@ -431,249 +516,21 @@ body {
 
     // Create directories
     const componentsDir = path.join(srcDir, 'components');
-    const servicesDir = path.join(srcDir, 'services');
     const hooksDir = path.join(srcDir, 'hooks');
     const pagesDir = path.join(srcDir, 'pages');
 
     await fs.mkdir(componentsDir, { recursive: true });
-    await fs.mkdir(servicesDir, { recursive: true });
     await fs.mkdir(hooksDir, { recursive: true });
     await fs.mkdir(pagesDir, { recursive: true });
 
     const arch = reqs.frontendArchitecture;
+    const hasServices = arch ? arch.services.length > 0 : false;
 
-    // === Generate components ===
-    if (arch && arch.components.length > 0) {
-      for (const comp of arch.components) {
-        if (comp.type === 'page') continue; // Pages go in pages/
-        onLog(4, `[frontend-generator] Generating AI Component: ${comp.name}...`);
-        
-        const prompt = `You are an expert React and Tailwind developer building components for a ${reqs.appName} application.
-App Features: ${reqs.features.join(', ')}
-
-Task: Write a fully functional, production-ready React component named "${comp.name}".
-Description: ${comp.description}
-
-Requirements:
-- Use TypeScript and functional components.
-- Use Tailwind CSS for all styling, ensuring it looks beautiful, premium, and modern.
-- For icons, ONLY use 'lucide-react'. Valid icon names include: Search, Cloud, Sun, Moon, Wind, Droplets, Thermometer, MapPin, Clock, RefreshCw, Loader, AlertCircle, ChevronDown, ChevronUp, X, Menu, Home, Settings, Star, Heart, Eye, Trash2, Edit, Plus, Check, ArrowLeft, ArrowRight. Do NOT use icon names from other libraries (no Fi*, no Magnifying*, no Fa* prefixes).
-- Accept props via a typed interface and export the component as default export.
-- Add reasonable interactive elements, hover states, and animations via Tailwind.
-- Do NOT import any relative files, pages, hooks, or services. All styling and rendering logic must be self-contained in this single component file.
-- Output ONLY the raw TSX code within a markdown code block. Do not include conversational text.
-`;
-        try {
-          const aiResponse = await this.generateTextWithRetry(provider, prompt);
-          const compTsx = this.extractCodeBlock(aiResponse);
-          await fs.writeFile(path.join(componentsDir, `${comp.name}.tsx`), compTsx);
-        } catch (e: any) {
-          onLog(4, `[WARN] Failed to generate component ${comp.name}: ${e.message}`);
-          if (this.isDailyRateLimit(e)) throw e;
-        }
-      }
+    // Only create services directory if the architecture actually has services
+    const servicesDir = path.join(srcDir, 'services');
+    if (hasServices) {
+      await fs.mkdir(servicesDir, { recursive: true });
     }
-
-    // === Generate services ===
-    if (arch && arch.services.length > 0) {
-      for (const svc of arch.services) {
-        onLog(4, `[frontend-generator] Generating AI Service: ${svc.name}...`);
-        
-        const prompt = `You are an expert TypeScript developer building API services for a ${reqs.appName} application.
-App Features: ${reqs.features.join(', ')}
-
-Task: Write a fully functional API service named "${svc.name}".
-Description: ${svc.description}
-External API Required: ${svc.externalApi ? svc.externalApi : 'None. Assume a local generic REST backend.'}
-
-Requirements:
-- Use 'axios' for HTTP requests.
-- If it connects to a local backend, use \`const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';\` and request standard routes.
-- If it connects to a specific external API (like OpenWeatherMap, REST Countries, etc.), implement actual endpoints with the correct parameter names. For OpenWeatherMap, use \`appid\` (NOT \`apiKey\`) as the query parameter.
-- Export the service as a NAMED export: \`export const ${svc.name} = { ... }\`. The object must contain fully typed async methods.
-- Provide realistic default implementations or fallbacks if the API key or endpoint fails.
-- Do NOT import any relative modules or non-existent files. All helper functions and domain logic must be contained entirely within this single file. If accessing browser APIs (like Notification, Geolocation, localStorage), use the standard browser global objects directly (e.g. window.Notification or navigator.geolocation), do NOT write relative imports for them.
-- If using try/catch, DO NOT type the catch variable as \`any\` (e.g. use \`catch (e)\` or \`catch (error)\`, NOT \`catch (e: any)\`).
-- Output ONLY the raw TS code within a markdown code block. Do not include conversational text.
-`;
-        try {
-          const aiResponse = await this.generateTextWithRetry(provider, prompt);
-          const svcTs = this.extractCodeBlock(aiResponse);
-          await fs.writeFile(path.join(servicesDir, `${svc.name}.ts`), svcTs);
-        } catch (e: any) {
-          onLog(4, `[WARN] Failed to generate service ${svc.name}: ${e.message}`);
-          if (this.isDailyRateLimit(e)) throw e;
-        }
-      }
-    }
-
-    // === Generate hooks (with service interface injection) ===
-    // Read generated service source code to inject method signatures into hook prompts
-    const serviceSignatures: Record<string, string> = {};
-    if (arch && arch.services.length > 0) {
-      for (const svc of arch.services) {
-        try {
-          const svcCode = await fs.readFile(path.join(servicesDir, `${svc.name}.ts`), 'utf-8');
-          serviceSignatures[svc.name] = svcCode;
-        } catch { /* service file missing — skip */ }
-      }
-    }
-
-    if (arch && arch.hooks.length > 0) {
-      for (const hook of arch.hooks) {
-        onLog(4, `[frontend-generator] Generating AI Hook: ${hook.name}...`);
-        
-        const servicesList = arch.services.map(s => s.name).join(', ');
-        // Build service context with actual method signatures
-        let serviceContext = `Available services: ${servicesList}`;
-        for (const [svcName, svcCode] of Object.entries(serviceSignatures)) {
-          serviceContext += `\n\n--- Service: ${svcName} (../services/${svcName}) ---\n${svcCode.substring(0, 1500)}`;
-        }
-
-        const prompt = `You are an expert React developer building custom hooks for a ${reqs.appName} application.
-App Features: ${reqs.features.join(', ')}
-
-Task: Write a fully functional custom React hook named "${hook.name}".
-Description: ${hook.description}
-
-Context — ACTUAL SERVICE CODE (you MUST use only the method names shown here):
-${serviceContext}
-
-Requirements:
-- Use standard React hooks (useState, useEffect, useCallback).
-- Import services using exact filenames. Example: \`import { weatherApiService } from '../services/weatherApiService'\`.
-- CRITICAL: Only call methods that ACTUALLY EXIST in the service code shown above. Do NOT assume a service exports another service. Do NOT invent method names.
-- Export the hook as a NAMED export: \`export function ${hook.name}(...) { ... }\` or \`export const ${hook.name} = (...) => { ... }\`. Do NOT use export default.
-- Return state (data, loading, error) and any relevant mutator/refresh functions.
-- Do NOT import any relative modules or helper files other than the listed services.
-- If using try/catch, DO NOT type the catch variable as \`any\` (e.g. use \`catch (e)\` or \`catch (error)\`, NOT \`catch (e: any)\`).
-- Output ONLY the raw TS code within a markdown code block. Do not include conversational text.
-`;
-        try {
-          const aiResponse = await this.generateTextWithRetry(provider, prompt);
-          const hookTs = this.extractCodeBlock(aiResponse);
-          await fs.writeFile(path.join(hooksDir, `${hook.name}.ts`), hookTs);
-        } catch (e: any) {
-          onLog(4, `[WARN] Failed to generate hook ${hook.name}: ${e.message}`);
-          if (this.isDailyRateLimit(e)) throw e;
-        }
-      }
-    }
-
-    // === Generate pages (with hook + component interface injection) ===
-    // Read generated hooks and components to inject their signatures into page prompts
-    const hookSignatures: Record<string, string> = {};
-    if (arch && arch.hooks.length > 0) {
-      for (const hook of arch.hooks) {
-        try {
-          const hookCode = await fs.readFile(path.join(hooksDir, `${hook.name}.ts`), 'utf-8');
-          hookSignatures[hook.name] = hookCode;
-        } catch { /* hook file missing */ }
-      }
-    }
-    const componentSignatures: Record<string, string> = {};
-    if (arch && arch.components.length > 0) {
-      for (const comp of arch.components) {
-        if (comp.type === 'page') continue;
-        try {
-          const compCode = await fs.readFile(path.join(componentsDir, `${comp.name}.tsx`), 'utf-8');
-          componentSignatures[comp.name] = compCode;
-        } catch { /* component file missing */ }
-      }
-    }
-
-    if (arch && arch.pages.length > 0) {
-      for (const page of arch.pages) {
-        onLog(4, `[frontend-generator] Generating AI Page: ${page.componentName}...`);
-        
-        const hooksList = arch.hooks.map(h => h.name).join(', ');
-        const componentsList = arch.components.filter(c => c.type !== 'page').map(c => c.name).join(', ');
-        
-        // Build context with actual hook return types and component props
-        let hookContext = '';
-        for (const [hookName, hookCode] of Object.entries(hookSignatures)) {
-          hookContext += `\n--- Hook: ${hookName} (import { ${hookName} } from '../hooks/${hookName}') ---\n${hookCode.substring(0, 1200)}\n`;
-        }
-        let compContext = '';
-        for (const [compName, compCode] of Object.entries(componentSignatures)) {
-          compContext += `\n--- Component: ${compName} (import ${compName} from '../components/${compName}') ---\n${compCode.substring(0, 1200)}\n`;
-        }
-
-        const prompt = `You are an expert React and Tailwind developer assembling pages for a ${reqs.appName} application.
-App Features: ${reqs.features.join(', ')}
-
-Task: Write a fully functional, production-ready React page component named "${page.componentName}".
-Description: ${page.description}
-
-ACTUAL HOOK CODE (use ONLY the return values and function signatures shown here):
-${hookContext || 'No hooks available.'}
-
-ACTUAL COMPONENT CODE (use ONLY the props interfaces shown here):
-${compContext || 'No components available.'}
-
-Requirements:
-- Import hooks using named imports: \`import { hookName } from '../hooks/hookName'\` if applicable.
-- Import components using default imports: \`import ComponentName from '../components/ComponentName'\` if applicable.
-- CRITICAL: Only use return values/methods that EXIST in the actual hook code above. Only pass props that EXIST in the component interfaces above.
-- Integrate state management using the available hooks. No local mock data generators.
-- Layout beautifully using Tailwind CSS.
-- For icons, ONLY use 'lucide-react' with valid names: Search, Cloud, Sun, Wind, Droplets, Thermometer, MapPin, Clock, RefreshCw, Loader, AlertCircle, X, Menu, Home, Settings, Star, Eye, Trash2, Edit, Plus, Check, ArrowLeft, ArrowRight. Do NOT use FiSearch, MagnifyingGlass, or other non-lucide names. ALL icons used MUST be imported individually from 'lucide-react'. Do NOT use dynamic JSX like \`<IconMap[name] />\` or \`import * as Icons\`.
-- Handle null values properly (e.g. if a string might be null, do not pass it to a string-only prop without fallback).
-- Return the full React functional component as default export.
-- CRITICAL: DO NOT import any external libraries except 'react', 'react-router-dom', and 'lucide-react'.
-- DO NOT import 'tailwindcss/theming', 'vite-env-dots', '@transitive-bull/lucide-react', or ANY other fake libraries.
-- If you need icons, import EXACTLY from 'lucide-react' (e.g. \`import { Search } from 'lucide-react'\`). Do NOT import from '@transitive-bull/lucide-react' or anything else.
-- DO NOT use the React class component \`Component\`, always use functional components (\`React.FC\`).
-- Output ONLY the raw TSX code within a markdown code block. Do not include conversational text.
-`;
-        try {
-          const aiResponse = await this.generateTextWithRetry(provider, prompt);
-          const pageTsx = this.extractCodeBlock(aiResponse);
-          await fs.writeFile(path.join(pagesDir, `${page.componentName}.tsx`), pageTsx);
-        } catch (e: any) {
-          onLog(4, `[WARN] Failed to generate page ${page.componentName}: ${e.message}`);
-          if (this.isDailyRateLimit(e)) throw e;
-        }
-      }
-    }
-
-    // === Generate index.ts barrel files ===
-    // 1. Components index
-    let componentsIndex = '';
-    if (arch && arch.components.length > 0) {
-      for (const comp of arch.components) {
-        if (comp.type === 'page') continue;
-        componentsIndex += `export { default as ${comp.name} } from './${comp.name}';\n`;
-      }
-    }
-    await fs.writeFile(path.join(componentsDir, 'index.ts'), componentsIndex);
-
-    // 2. Services index
-    let servicesIndex = '';
-    if (arch && arch.services.length > 0) {
-      for (const svc of arch.services) {
-        servicesIndex += `export * from './${svc.name}';\n`;
-      }
-    }
-    await fs.writeFile(path.join(servicesDir, 'index.ts'), servicesIndex);
-
-    // 3. Hooks index
-    let hooksIndex = '';
-    if (arch && arch.hooks.length > 0) {
-      for (const hook of arch.hooks) {
-        hooksIndex += `export * from './${hook.name}';\n`;
-      }
-    }
-    await fs.writeFile(path.join(hooksDir, 'index.ts'), hooksIndex);
-
-    // 4. Pages index
-    let pagesIndex = '';
-    if (arch && arch.pages.length > 0) {
-      for (const page of arch.pages) {
-        pagesIndex += `export { default as ${page.componentName} } from './${page.componentName}';\n`;
-      }
-    }
-    await fs.writeFile(path.join(pagesDir, 'index.ts'), pagesIndex);
 
     // === App.tsx ===
     let appTsx = `import React from 'react'
@@ -741,6 +598,291 @@ export default App
 `;
     await fs.writeFile(path.join(srcDir, 'App.tsx'), appTsx);
 
+    // === Generate components ===
+    if (arch && arch.components.length > 0) {
+      for (const comp of arch.components) {
+        if (comp.type === 'page') continue; // Pages go in pages/
+        onLog(4, `[frontend-generator] Generating AI Component: ${comp.name}...`);
+        
+        const prompt = `You are an expert React and Tailwind developer building components for a ${reqs.appName} application.
+App Features: ${reqs.features.join(', ')}
+
+Task: Write a fully functional, production-ready React component named "${comp.name}".
+Description: ${comp.description}
+
+Requirements:
+- Use TypeScript and functional components.
+- Use Tailwind CSS for all styling, ensuring it looks beautiful, premium, and modern.
+- For icons, ONLY use named imports from 'lucide-react' (e.g. \`import { Search, Home } from 'lucide-react';\`). Do NOT use default imports or wildcard imports like \`import * as Lucide\`. Valid icon names include: Search, Cloud, Sun, Moon, Wind, Droplets, Thermometer, MapPin, Clock, RefreshCw, Loader, AlertCircle, ChevronDown, ChevronUp, X, Menu, Home, Settings, Star, Heart, Eye, Trash2, Edit, Plus, Check, ArrowLeft, ArrowRight. Do NOT use icon names from other libraries (no Fi*, no Magnifying*, no Fa* prefixes).
+- Accept props via a typed interface and export the component as default export. Props in your TypeScript interfaces should be optional (using '?') unless they are absolutely critical for the component to render.
+- Add reasonable interactive elements, hover states, and animations via Tailwind.
+- Do NOT import any relative files, pages, hooks, or services. All styling and rendering logic must be self-contained in this single component file.
+- Return ONLY valid TypeScript/TSX source code. Do not include: explanations, markdown, reasoning, XML tags, think tags, or comments describing the solution.
+`;
+        try {
+          const compTsx = await this.generateValidCode(provider, prompt, true, onLog);
+          await fs.writeFile(path.join(componentsDir, `${comp.name}.tsx`), compTsx);
+        } catch (e: any) {
+          onLog(4, `[FATAL] Generation Failed: Invalid AI output detected. (${e.message})`);
+          throw e;
+        }
+      }
+    }
+
+    // === Generate services (only if architecture declares services) ===
+    if (hasServices) {
+      for (const svc of arch!.services) {
+        onLog(4, `[frontend-generator] Generating AI Service: ${svc.name}...`);
+        
+        const prompt = `You are an expert TypeScript developer building API services for a ${reqs.appName} application.
+App Features: ${reqs.features.join(', ')}
+
+Task: Write a fully functional API service named "${svc.name}".
+Description: ${svc.description}
+External API Required: ${svc.externalApi ? svc.externalApi : 'None. Assume a local generic REST backend.'}
+
+Requirements:
+- If this service connects to an external API or local backend, use 'axios' for HTTP requests.
+- If this service handles localStorage or pure math, DO NOT use axios. Return plain objects or primitive values. Ensure your exported function signatures exactly match the actual return type (e.g. do not type as AxiosResponse if you return a plain object).
+- If it connects to a local backend, use \`const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';\` and request standard routes.
+- If it connects to a specific external API (like OpenWeatherMap, REST Countries, etc.), implement actual endpoints with the correct parameter names. For OpenWeatherMap, use \`appid\` (NOT \`apiKey\`) as the query parameter.
+- Export the service as a NAMED export: \`export const ${svc.name} = { ... }\`. The object must contain fully typed async methods.
+- Provide realistic default implementations or fallbacks if the API key or endpoint fails.
+- Do NOT import any relative modules or non-existent files. All helper functions and domain logic must be contained entirely within this single file. If accessing browser APIs (like Notification, Geolocation, localStorage), use the standard browser global objects directly (e.g. window.Notification or navigator.geolocation), do NOT write relative imports for them.
+- If using try/catch, DO NOT type the catch variable as \`any\` (e.g. use \`catch (e)\` or \`catch (error)\`, NOT \`catch (e: any)\`).
+- Return ONLY valid TypeScript/TSX source code. Do not include: explanations, markdown, reasoning, XML tags, think tags, or comments describing the solution.
+`;
+        try {
+          const svcTs = await this.generateValidCode(provider, prompt, false, onLog);
+          await fs.writeFile(path.join(servicesDir, `${svc.name}.ts`), svcTs);
+        } catch (e: any) {
+          onLog(4, `[FATAL] Generation Failed: Invalid AI output detected. (${e.message})`);
+          throw e;
+        }
+      }
+    }
+
+    // === Generate hooks (with service-aware prompt conditioning) ===
+    // Read generated service source code to inject method signatures into hook prompts
+    const serviceSignatures: Record<string, string> = {};
+    if (hasServices) {
+      for (const svc of arch!.services) {
+        try {
+          const svcCode = await fs.readFile(path.join(servicesDir, `${svc.name}.ts`), 'utf-8');
+          serviceSignatures[svc.name] = svcCode;
+        } catch { /* service file missing — skip */ }
+      }
+    }
+
+    if (arch && arch.hooks.length > 0) {
+      for (const hook of arch.hooks) {
+        onLog(4, `[frontend-generator] Generating AI Hook: ${hook.name}...`);
+
+        let serviceBlock: string;
+        let serviceRequirements: string;
+
+        if (hasServices && Object.keys(serviceSignatures).length > 0) {
+          // Services exist — inject their actual code for the AI to reference
+          const servicesList = arch.services.map(s => s.name).join(', ');
+          let serviceContext = `Available services: ${servicesList}`;
+          for (const [svcName, svcCode] of Object.entries(serviceSignatures)) {
+            serviceContext += `\n\n--- Service: ${svcName} (../services/${svcName}) ---\n${svcCode.substring(0, 1500)}`;
+          }
+          serviceBlock = `Context — ACTUAL SERVICE CODE (you MUST use only the method names shown here):\n${serviceContext}`;
+          serviceRequirements = `- Import services using exact filenames. Example: \`import { weatherApiService } from '../services/weatherApiService'\`.
+- CRITICAL: Only call methods that ACTUALLY EXIST in the service code shown above. Do NOT assume a service exports another service. Do NOT invent method names.
+- Do NOT import any relative modules or helper files other than the listed services.`;
+        } else {
+          // NO services — hard constraint to prevent phantom service imports
+          serviceBlock = `IMPORTANT: This application has NO services. There are NO service files. The services/ directory does not exist.`;
+          serviceRequirements = `- CRITICAL: Do NOT import any service files. There are NO services in this application.
+- CRITICAL: Do NOT import any relative modules. No ./services, no ../services, no ./utils, no ./helpers.
+- All data and logic must be SELF-CONTAINED in this hook using React state (useState), localStorage, or in-memory computation.
+- Do NOT generate imports for files that do not exist.`;
+        }
+
+        const prompt = `You are an expert React developer building custom hooks for a ${reqs.appName} application.
+App Features: ${reqs.features.join(', ')}
+
+Task: Write a fully functional custom React hook named "${hook.name}".
+Description: ${hook.description}
+
+${serviceBlock}
+
+Requirements:
+- Use standard React hooks (useState, useEffect, useCallback).
+${serviceRequirements}
+- Export the hook as a NAMED export: \`export function ${hook.name}(...) { ... }\` or \`export const ${hook.name} = (...) => { ... }\`. Do NOT use export default.
+- Return state (data, loading, error) and any relevant mutator/refresh functions.
+- If using try/catch, DO NOT type the catch variable as \`any\` (e.g. use \`catch (e)\` or \`catch (error)\`, NOT \`catch (e: any)\`).
+- Return ONLY valid TypeScript/TSX source code. Do not include: explanations, markdown, reasoning, XML tags, think tags, or comments describing the solution.
+`;
+        try {
+          const hookTs = await this.generateValidCode(provider, prompt, false, onLog);
+          await fs.writeFile(path.join(hooksDir, `${hook.name}.ts`), hookTs);
+        } catch (e: any) {
+          onLog(4, `[FATAL] Generation Failed: Invalid AI output detected. (${e.message})`);
+          throw e;
+        }
+      }
+    }
+
+    // === Generate pages (with hook + component interface injection) ===
+    // Read generated hooks and components to inject their signatures into page prompts
+    const hookSignatures: Record<string, string> = {};
+    if (arch && arch.hooks.length > 0) {
+      for (const hook of arch.hooks) {
+        try {
+          const hookCode = await fs.readFile(path.join(hooksDir, `${hook.name}.ts`), 'utf-8');
+          hookSignatures[hook.name] = hookCode;
+        } catch { /* hook file missing */ }
+      }
+    }
+    const componentSignatures: Record<string, string> = {};
+    if (arch && arch.components.length > 0) {
+      for (const comp of arch.components) {
+        if (comp.type === 'page') continue;
+        try {
+          const compCode = await fs.readFile(path.join(componentsDir, `${comp.name}.tsx`), 'utf-8');
+          componentSignatures[comp.name] = compCode;
+        } catch { /* component file missing */ }
+      }
+    }
+
+    if (arch && arch.pages.length > 0) {
+      for (const page of arch.pages) {
+        onLog(4, `[frontend-generator] Generating AI Page: ${page.componentName}...`);
+        
+        const hooksList = arch.hooks.map(h => h.name).join(', ');
+        const componentsList = arch.components.filter(c => c.type !== 'page').map(c => c.name).join(', ');
+        
+        // Build context with actual hook return types and component props
+        let hookContext = '';
+        for (const [hookName, hookCode] of Object.entries(hookSignatures)) {
+          hookContext += `\n--- Hook: ${hookName} (import { ${hookName} } from '../hooks/${hookName}') ---\n${hookCode.substring(0, 1200)}\n`;
+        }
+        let compContext = '';
+        for (const [compName, compCode] of Object.entries(componentSignatures)) {
+          compContext += `\n--- Component: ${compName} (import ${compName} from '../components/${compName}') ---\n${compCode.substring(0, 1200)}\n`;
+        }
+
+        const prompt = `You are an expert React and Tailwind developer assembling pages for a ${reqs.appName} application.
+App Features: ${reqs.features.join(', ')}
+
+Task: Write a fully functional, production-ready React page component named "${page.componentName}".
+Description: ${page.description}
+
+ACTUAL HOOK CODE (use ONLY the return values and function signatures shown here):
+${hookContext || 'No hooks available.'}
+
+ACTUAL COMPONENT CODE (use ONLY the props interfaces shown here):
+${compContext || 'No components available.'}
+
+Requirements:
+- Import hooks using named imports: \`import { hookName } from '../hooks/hookName'\` if applicable.
+- Import components using default imports: \`import ComponentName from '../components/ComponentName'\` if applicable.
+- CRITICAL: Only use return values/methods that EXIST in the actual hook code above. Only pass props that EXIST in the component interfaces above.
+- CRITICAL: Do NOT invent, assume, or import any local components that are not explicitly provided in the ACTUAL COMPONENT CODE section. Use only those components or standard HTML elements.
+- Integrate state management using the available hooks. No local mock data generators.
+- Layout beautifully using Tailwind CSS.
+- For icons, ONLY use 'lucide-react' with valid names: Search, Cloud, Sun, Wind, Droplets, Thermometer, MapPin, Clock, RefreshCw, Loader, AlertCircle, X, Menu, Home, Settings, Star, Eye, Trash2, Edit, Plus, Check, ArrowLeft, ArrowRight. Do NOT use FiSearch, MagnifyingGlass, or other non-lucide names. ALL icons used MUST be imported individually from 'lucide-react'. Do NOT use dynamic JSX like \`<IconMap[name] />\` or \`import * as Icons\`.
+- Handle null values properly (e.g. if a string might be null, do not pass it to a string-only prop without fallback).
+- Return the full React functional component as default export.
+- CRITICAL: DO NOT import any external libraries except 'react', 'react-router-dom', and 'lucide-react'.
+- DO NOT import 'tailwindcss/theming', 'vite-env-dots', '@transitive-bull/lucide-react', or ANY other fake libraries.
+- If you need icons, import EXACTLY from 'lucide-react' (e.g. \`import { Search } from 'lucide-react'\`). Do NOT import from '@transitive-bull/lucide-react' or anything else.
+- DO NOT use the React class component \`Component\`, always use functional components (\`React.FC\`).
+- Return ONLY valid TypeScript/TSX source code. Do not include: explanations, markdown, reasoning, XML tags, think tags, or comments describing the solution.
+`;
+        try {
+          const pageTsx = await this.generateValidCode(provider, prompt, true, onLog);
+          await fs.writeFile(path.join(pagesDir, `${page.componentName}.tsx`), pageTsx);
+        } catch (e: any) {
+          onLog(4, `[FATAL] Generation Failed: Invalid AI output detected. (${e.message})`);
+          throw e;
+        }
+      }
+    }
+
+    // === Generate index.ts barrel files ===
+    // 1. Components index
+    let componentsIndex = '';
+    if (arch && arch.components.length > 0) {
+      for (const comp of arch.components) {
+        if (comp.type === 'page') continue;
+        componentsIndex += `export { default as ${comp.name} } from './${comp.name}';\n`;
+      }
+    }
+    await fs.writeFile(path.join(componentsDir, 'index.ts'), componentsIndex);
+
+    // 2. Services index (only if services exist)
+    if (hasServices) {
+      let servicesIndex = '';
+      for (const svc of arch!.services) {
+        servicesIndex += `export * from './${svc.name}';\n`;
+      }
+      await fs.writeFile(path.join(servicesDir, 'index.ts'), servicesIndex);
+    }
+
+    // 3. Hooks index
+    let hooksIndex = '';
+    if (arch && arch.hooks.length > 0) {
+      for (const hook of arch.hooks) {
+        hooksIndex += `export * from './${hook.name}';\n`;
+      }
+    }
+    await fs.writeFile(path.join(hooksDir, 'index.ts'), hooksIndex);
+
+    // 4. Pages index
+    let pagesIndex = '';
+    if (arch && arch.pages.length > 0) {
+      for (const page of arch.pages) {
+        pagesIndex += `export { default as ${page.componentName} } from './${page.componentName}';\n`;
+      }
+    }
+    await fs.writeFile(path.join(pagesDir, 'index.ts'), pagesIndex);
+
+    // === IMPORT INTEGRITY VALIDATION ===
+    // After all files are generated, validate every relative import resolves.
+    // If broken imports are found, strip them deterministically (no AI involved).
+    const projectRoot = path.dirname(frontendDir); // frontendDir = targetDir/frontend
+    onLog(4, '[frontend-generator] Running Import Integrity Validation...');
+    const importResult = await ImportIntegrityValidator.validate(projectRoot);
+    if (!importResult.isValid) {
+      onLog(4, `[frontend-generator] Found ${importResult.errors.length} broken import(s). Stripping...`);
+      // Group broken imports by file
+      const brokenByFile = new Map<string, Set<string>>();
+      for (const err of importResult.errors) {
+        const absPath = path.join(projectRoot, err.file);
+        if (!brokenByFile.has(absPath)) {
+          brokenByFile.set(absPath, new Set());
+        }
+        brokenByFile.get(absPath)!.add(err.importPath);
+      }
+
+      for (const [absFilePath, brokenPaths] of brokenByFile.entries()) {
+        onLog(4, `[frontend-generator] Stripping ${brokenPaths.size} broken import(s) from ${path.relative(projectRoot, absFilePath)}`);
+        const cleaned = await ImportIntegrityValidator.stripBrokenImports(absFilePath, brokenPaths);
+        if (cleaned !== null) {
+          await fs.writeFile(absFilePath, cleaned, 'utf-8');
+        }
+      }
+
+      // Re-validate after stripping
+      const recheck = await ImportIntegrityValidator.validate(projectRoot);
+      if (!recheck.isValid) {
+        onLog(4, `[frontend-generator] WARNING: ${recheck.errors.length} broken import(s) remain after stripping.`);
+        for (const err of recheck.errors) {
+          onLog(4, `[frontend-generator]   ${err.file}: import '${err.importPath}' → not found`);
+        }
+      } else {
+        onLog(4, '[frontend-generator] Import Integrity Validation PASSED after cleanup.');
+      }
+    } else {
+      onLog(4, '[frontend-generator] Import Integrity Validation PASSED.');
+    }
+
+
     // tsconfig for frontend
     const tsconfig = {
       compilerOptions: {
@@ -770,31 +912,8 @@ export default App
     return msg.includes('tokens per day') || msg.includes('TPD');
   }
 
-  private static async generateTextWithRetry(provider: any, prompt: string, maxRetries = 5, delayMs = 10000): Promise<string> {
-    let lastError: any = null;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        return await provider.generateText(prompt);
-      } catch (err: any) {
-        lastError = err;
-        const errMsg = err.message || '';
-        const errStr = JSON.stringify(err) || '';
-
-        // If daily token limit is exhausted, abort immediately — retries are pointless
-        if (this.isDailyRateLimit(err)) {
-          throw new Error(`Daily API token limit exhausted. Cannot generate code. ${errMsg}`);
-        }
-
-        const isRateLimit = errMsg.includes('429') || errMsg.includes('rate_limit') || errMsg.includes('Rate limit') || errStr.includes('429');
-        
-        if (isRateLimit || attempt < maxRetries) {
-          const waitTime = isRateLimit ? delayMs * 2 * attempt : delayMs * attempt;
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-        } else {
-          throw err;
-        }
-      }
-    }
-    throw lastError;
+  private static async generateTextWithRetry(provider: any, prompt: string): Promise<string> {
+    return RequestQueue.enqueue(() => provider.generateText(prompt));
   }
 }
+

@@ -26,7 +26,7 @@ export class GroqProvider extends BaseLLMProvider {
       messages: [{ role: 'user', content: prompt }],
       model: options?.model || this.defaultModel,
       temperature: options?.temperature ?? 0.7,
-      max_tokens: options?.maxTokens,
+      max_tokens: options?.maxTokens || 1500,
     });
 
     return res.choices[0]?.message?.content || '';
@@ -41,7 +41,7 @@ export class GroqProvider extends BaseLLMProvider {
         messages: [{ role: 'user', content: prompt }],
         model: options?.model || this.defaultModel,
         temperature: options?.temperature ?? 0.1, // low temp for deterministic JSON
-        max_tokens: options?.maxTokens,
+        max_tokens: options?.maxTokens || 1500,
         response_format: { type: 'json_object' },
       });
 
@@ -62,7 +62,7 @@ export class GroqProvider extends BaseLLMProvider {
       messages: [{ role: 'user', content: prompt }],
       model: options?.model || this.defaultModel,
       temperature: options?.temperature ?? 0.7,
-      max_tokens: options?.maxTokens,
+      max_tokens: options?.maxTokens || 1500,
       stream: true,
     });
 

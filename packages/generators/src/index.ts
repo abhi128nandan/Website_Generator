@@ -1,4 +1,4 @@
-import { NormalizedRequirements } from '@paperclip/shared';
+import { NormalizedRequirements } from '@website-generator/shared';
 import fs from 'fs/promises';
 import path from 'path';
 import { RootWorkspaceGenerator } from './templates/root';
@@ -16,6 +16,8 @@ export { HybridGenerator } from './generators/hybrid-generator';
 export { FrontendAIAnalyzer } from './generators/frontend-ai-analyzer';
 export { GeneratorQualityChecker } from './validators/generator-quality-checker';
 export { GeneratorObservability } from './observability/observability-layer';
+export { MetricsTracker } from './observability/metrics-tracker';
+export { ConversationalEditor } from './agents/conversational-editor';
 
 
 

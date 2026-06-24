@@ -1,4 +1,4 @@
-import { Logger, RequirementsSchema, NormalizedRequirements } from '@paperclip/shared';
+import { Logger, RequirementsSchema, NormalizedRequirements } from '@website-generator/shared';
 import { ProviderFactory, BaseLLMProvider } from './providers';
 
 export class RequirementExtractor {

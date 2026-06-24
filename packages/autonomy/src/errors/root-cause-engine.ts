@@ -1,4 +1,4 @@
-import { ErrorCategory, StructuredError } from '@paperclip/shared';
+import { ErrorCategory, StructuredError } from '@website-generator/shared';
 
 export interface RootCauseDiagnosis {
   rootCause: string;

@@ -10,7 +10,7 @@
     "test": "tsx src/__tests__/parser.test.ts"
   },
   "dependencies": {
-    "@paperclip/shared": "workspace:*",
+    "@website-generator/shared": "workspace:*",
     "pdf-parse": "1.1.1",
     "gray-matter": "^4.0.3"
   },

@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-06-24T05:54:21.773Z",
+  "appName": "BasicCalcApp",
+  "classifiedMode": "frontend-app",
+  "score": 93,
+  "reliability": {
+    "buildSuccess": true,
+    "runtimeSuccess": true,
+    "apiSuccess": true,
+    "persistenceSuccess": false,
+    "score": 93
+  }
+}

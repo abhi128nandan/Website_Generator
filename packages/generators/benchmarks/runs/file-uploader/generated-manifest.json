@@ -1,0 +1,16 @@
+{
+  "pages": [
+    "FileUploadPage"
+  ],
+  "components": [
+    "FileUploadPage",
+    "FileInput",
+    "UploadButton"
+  ],
+  "hooks": [],
+  "services": [],
+  "routes": [
+    "/"
+  ],
+  "prismaModels": []
+}

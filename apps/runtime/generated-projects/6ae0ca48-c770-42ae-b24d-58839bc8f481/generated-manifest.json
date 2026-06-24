@@ -1,0 +1,18 @@
+{
+  "pages": [
+    "CalculatorPage"
+  ],
+  "components": [
+    "CalculatorPage",
+    "CalculatorDisplay",
+    "CalculatorButtonGrid"
+  ],
+  "hooks": [
+    "useCalculator"
+  ],
+  "services": [],
+  "routes": [
+    "/"
+  ],
+  "prismaModels": []
+}

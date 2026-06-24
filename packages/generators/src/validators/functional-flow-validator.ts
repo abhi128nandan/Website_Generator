@@ -1,4 +1,4 @@
-import { NormalizedRequirements, Logger } from '@paperclip/shared';
+import { NormalizedRequirements, Logger } from '@website-generator/shared';
 import fs from 'fs/promises';
 import path from 'path';
 

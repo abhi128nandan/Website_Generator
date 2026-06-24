@@ -1,0 +1,13 @@
+{
+  "files": [
+    "package.json",
+    "pnpm-workspace.yaml",
+    ".npmrc",
+    ".gitignore",
+    ".env.example",
+    "README.md",
+    "metadata.json",
+    "generated-files.json",
+    "frontend/"
+  ]
+}

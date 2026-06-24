@@ -36,7 +36,7 @@ export interface Project {
 }
 
 export const CONSTANTS = {
-  APP_NAME: 'Paperclip Core',
+  APP_NAME: 'Website Generator',
   VERSION: '1.0.0',
 };
 
@@ -162,6 +162,13 @@ export const FrontendArchitectureSchema = z.object({
     name: z.string(),
     description: z.string(),
     externalApi: z.string().nullable().optional(),
+    endpoints: z.array(
+      z.object({
+        method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
+        path: z.string(),
+        description: z.string()
+      })
+    ).optional().default([])
   })).default([]),
   hooks: z.array(z.object({
     name: z.string(),
@@ -171,6 +178,8 @@ export const FrontendArchitectureSchema = z.object({
     route: z.string(),
     componentName: z.string(),
     description: z.string(),
+    isProtected: z.boolean().optional().default(false),
+    allowedRoles: z.array(z.enum(['USER', 'MANAGER', 'ADMIN', 'SUPER_ADMIN'])).optional().default([]),
   })).default([]),
 });
 
@@ -261,3 +270,30 @@ export interface Checkpoint {
   stateSnapshot: any;
   hash: string;
 }
+
+// --- Project Memory Types ---
+export interface EditHistoryEntry {
+  timestamp: string;
+  userPrompt: string;
+  affectedFiles: string[];
+  success: boolean;
+}
+
+export interface ProjectMemory {
+  projectId: string;
+  architecture: any; // The architecture.json content
+  features: string[];
+  components: string[];
+  edits: EditHistoryEntry[];
+  userPreferences: Record<string, string>;
+  createdAt: string;
+  lastEditedAt: string;
+}
+
+export class RecoverableGenerationError extends Error {
+   constructor(public errors: string[]) {
+      super("Recoverable generation error");
+      this.name = 'RecoverableGenerationError';
+   }
+}
+

@@ -293,7 +293,7 @@ export class ASTValidator {
     }
 
     // Special Rule: Check for missing default exports in frontend/src/pages
-    if (relName.includes('frontend/src/pages/') || relName.includes('src/pages/')) {
+    if ((relName.includes('frontend/src/pages/') || relName.includes('src/pages/')) && !relName.endsWith('index.ts') && !relName.endsWith('index.tsx')) {
       if (defaultExportCount !== 1) {
         errors.push({
           file: relName,

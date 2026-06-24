@@ -1,0 +1,387 @@
+{
+  "id": "fec89a2a-2170-48c4-b4b5-eb085f4d0e28",
+  "status": "failed",
+  "createdAt": "2026-06-10T19:46:12.038Z",
+  "updatedAt": "2026-06-10T19:47:48.729Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [
+    "Provider Error: 429 {\"error\":{\"message\":\"Rate limit reached for model `qwen/qwen3-32b` in organization `org_01kt8r2qjdfh0t1s5rff0mtc19` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Used 3264, Requested 3079. Please try again in 3.429999999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}"
+  ],
+  "appName": "To-Do App",
+  "appType": "task-management-app",
+  "frontend": [
+    "React"
+  ],
+  "backend": [
+    "Node.js",
+    "Express"
+  ],
+  "database": [
+    "PostgreSQL"
+  ],
+  "features": [
+    "Task creation with title, description, due date, and priority",
+    "Task status tracking (completed/pending)",
+    "Task categorization by tags or labels",
+    "Responsive UI for cross-device compatibility"
+  ],
+  "workflows": [
+    "User creates a new task with details",
+    "User updates task status or priority",
+    "User deletes a task",
+    "User filters tasks by category or due date"
+  ],
+  "entities": [
+    {
+      "name": "Task",
+      "fields": [
+        "title",
+        "description",
+        "dueDate",
+        "priority",
+        "status",
+        "categoryId"
+      ],
+      "validations": [
+        "title must not be empty",
+        "dueDate must be a valid future date",
+        "priority must be between 1 and 5"
+      ],
+      "relationships": [
+        "1:N with Category"
+      ]
+    }
+  ],
+  "routes": [
+    "GET /tasks",
+    "POST /tasks",
+    "GET /tasks/:id",
+    "PUT /tasks/:id",
+    "DELETE /tasks/:id"
+  ],
+  "classifiedMode": "crud-admin",
+  "architecture": {
+    "entities": [
+      {
+        "name": "Task",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "isRequired": true,
+            "isId": true,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@id",
+              "@default(uuid())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "isRequired": false,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "dueDate",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "priority",
+            "type": "TaskPriority",
+            "isRequired": false,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@default(LOW)"
+            ],
+            "isList": false
+          },
+          {
+            "name": "status",
+            "type": "TaskStatus",
+            "isRequired": false,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@default(PENDING)"
+            ],
+            "isList": false
+          },
+          {
+            "name": "categoryId",
+            "type": "String",
+            "isRequired": false
+          },
+          {
+            "name": "category",
+            "type": "Category",
+            "isRequired": false,
+            "isRelation": true,
+            "relationTarget": "Category",
+            "attributes": [
+              "@relation(fields: [categoryId], references: [id], map: \"Task_categoryId_fkey\")"
+            ]
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@default(now())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@updatedAt"
+            ],
+            "isList": false
+          },
+          {
+            "name": "category",
+            "type": "Category",
+            "isRequired": false,
+            "isRelation": true,
+            "relationTarget": "Category",
+            "attributes": [
+              "@relation(fields: [categoryId], references: [id], map: \"Task_categoryId_fkey\")"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Category",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "isRequired": true,
+            "isId": true,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@id",
+              "@default(uuid())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": true,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "color",
+            "type": "String",
+            "isRequired": false,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@default(now())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@updatedAt"
+            ],
+            "isList": false
+          },
+          {
+            "name": "tasks",
+            "type": "Task",
+            "isRequired": false,
+            "isList": true,
+            "isRelation": true,
+            "relationTarget": "Task",
+            "attributes": []
+          }
+        ]
+      }
+    ],
+    "endpoints": [
+      {
+        "path": "/api/tasks",
+        "method": "GET",
+        "entity": "Task",
+        "description": "Retrieve all tasks with optional filtering by category or due date",
+        "businessLogic": "Apply query parameters for category, dueDateRange, and status. Return paginated results sorted by priority and due date."
+      },
+      {
+        "path": "/api/tasks",
+        "method": "POST",
+        "entity": "Task",
+        "description": "Create a new task with validation for title, due date, and priority",
+        "businessLogic": "Validate title is non-empty, dueDate is future date, priority is 1-5. Assign default status 'pending'."
+      },
+      {
+        "path": "/api/tasks/:id",
+        "method": "GET",
+        "entity": "Task",
+        "description": "Retrieve a single task by ID",
+        "businessLogic": "Fetch task by ID with related category data."
+      },
+      {
+        "path": "/api/tasks/:id",
+        "method": "PUT",
+        "entity": "Task",
+        "description": "Update task details (title, description, due date, priority)",
+        "businessLogic": "Validate updated fields. Ensure partial updates preserve required fields."
+      },
+      {
+        "path": "/api/tasks/:id/status",
+        "method": "PUT",
+        "entity": "Task",
+        "description": "Update task status (completed/pending)",
+        "businessLogic": "Validate status value. Update updatedAt timestamp automatically."
+      },
+      {
+        "path": "/api/tasks/:id",
+        "method": "DELETE",
+        "entity": "Task",
+        "description": "Delete a task by ID",
+        "businessLogic": "Soft delete with 'deletedAt' timestamp or permanent deletion based on config."
+      },
+      {
+        "path": "/api/categories",
+        "method": "GET",
+        "entity": "Category",
+        "description": "Retrieve all categories",
+        "businessLogic": "Return all categories with color and task count."
+      },
+      {
+        "path": "/api/categories",
+        "method": "POST",
+        "entity": "Category",
+        "description": "Create a new category with unique name",
+        "businessLogic": "Validate name uniqueness. Assign default color if not provided."
+      }
+    ],
+    "pages": [
+      {
+        "route": "/",
+        "componentName": "Dashboard",
+        "entity": "Task",
+        "description": "Main task management interface with quick filters and analytics",
+        "features": [
+          "Task creation form",
+          "Priority-based sorting",
+          "Due date filtering",
+          "Category-based grouping",
+          "Completion statistics"
+        ],
+        "isDashboard": true
+      },
+      {
+        "route": "/tasks",
+        "componentName": "TaskList",
+        "entity": "Task",
+        "description": "Full task list with advanced filtering and bulk actions",
+        "features": [
+          "Search by title/description",
+          "Filter by status and category",
+          "Bulk delete functionality",
+          "Export to CSV"
+        ]
+      },
+      {
+        "route": "/tasks/new",
+        "componentName": "TaskForm",
+        "entity": "Task",
+        "description": "Task creation form with validation and category selection",
+        "features": [
+          "Form validation for required fields",
+          "Date picker for due date",
+          "Priority slider",
+          "Category autocomplete"
+        ]
+      },
+      {
+        "route": "/categories",
+        "componentName": "CategoryManagement",
+        "entity": "Category",
+        "description": "Category management interface",
+        "features": [
+          "Create/edit categories",
+          "Color picker integration",
+          "Task count display",
+          "Category deletion with task reassignment"
+        ]
+      }
+    ],
+    "navigation": [
+      {
+        "label": "Dashboard",
+        "route": "/"
+      },
+      {
+        "label": "Tasks",
+        "route": "/tasks"
+      },
+      {
+        "label": "Categories",
+        "route": "/categories"
+      }
+    ]
+  },
+  "generatorVersion": "1.0.0",
+  "workspaceIntegrity": true,
+  "errorCategory": "RATE LIMITED"
+}

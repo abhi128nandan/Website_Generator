@@ -1,0 +1,26 @@
+{
+  "appType": "saas-dashboard",
+  "pages": [
+    "Dashboard",
+    "CostAlerts",
+    "UserManagement",
+    "Settings"
+  ],
+  "entities": [
+    "User",
+    "Role",
+    "Alert",
+    "UsageMetric"
+  ],
+  "apis": [
+    "POST /api/auth/login",
+    "GET /api/dashboard/metrics",
+    "POST /api/alerts",
+    "GET /api/users",
+    "GET /api/resource-usage"
+  ],
+  "designTokens": {
+    "primaryColor": "#4f46e5",
+    "layout": "sidebar"
+  }
+}

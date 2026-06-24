@@ -1,0 +1,31 @@
+{
+  "appType": "saas-dashboard",
+  "pages": [
+    "Dashboard",
+    "Tenants",
+    "Users",
+    "Settings",
+    "Billing"
+  ],
+  "entities": [
+    "Tenant",
+    "User",
+    "Team",
+    "Invoice"
+  ],
+  "apis": [
+    "POST /api/tenants",
+    "GET /api/tenants",
+    "GET /api/tenants/:id/billing",
+    "POST /api/users",
+    "GET /api/users",
+    "POST /api/teams",
+    "GET /api/teams"
+  ],
+  "designTokens": {
+    "primaryColor": "#4f46e5",
+    "secondaryColor": "#0f172a",
+    "colorMode": "dark",
+    "layout": "sidebar"
+  }
+}

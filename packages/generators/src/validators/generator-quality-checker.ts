@@ -1,8 +1,9 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { NormalizedRequirements, Logger } from '@paperclip/shared';
+import { NormalizedRequirements, Logger } from '@website-generator/shared';
 import { exec } from 'child_process';
 import util from 'util';
+import { DependencyGraphValidator } from './dependency-graph-validator';
 
 const execPromise = util.promisify(exec);
 export interface QualityValidationResult {
@@ -184,18 +185,51 @@ export class GeneratorQualityChecker {
       });
     } catch {}
 
-    // --- 4. Build Validation ---
-    try {
-      await fs.access(frontendDir);
-      Logger.info(`[QualityChecker] Running build validation in ${frontendDir}...`);
+    // --- 3.5. Dependency Graph Validation ---
+    const depErrors = await DependencyGraphValidator.validate(targetDir);
+    if (depErrors.length > 0) {
+      depErrors.forEach(e => errors.push(`[Dependency Error] ${e.file}: ${e.message}`));
+    } else {
+      // --- 4. Build Validation (Only run if dependencies are clean to avoid massive logs) ---
       try {
-        await execPromise('pnpm install --no-frozen-lockfile', { cwd: frontendDir });
-        await execPromise('pnpm build', { cwd: frontendDir });
-      } catch (e: any) {
-        errors.push(`[Build Error] Frontend build failed:\n${e.stdout}\n${e.stderr}\n${e.message}`);
+        await fs.access(frontendDir);
+        Logger.info(`[QualityChecker] Running build validation in ${frontendDir}...`);
+        try {
+          await execPromise('pnpm install --no-frozen-lockfile', { cwd: frontendDir });
+          await execPromise('pnpm build', { cwd: frontendDir });
+        } catch (e: any) {
+          const rawOutput = `${e.stdout}\n${e.stderr}\n${e.message}`;
+          const buildRoot = path.basename(frontendDir);
+          const tsRegex = /(.+?)\((\d+),(\d+)\):\s+(error|warning)\s+(TS\d+):\s+(.*)/g;
+          let match;
+          let foundStructured = false;
+
+          while ((match = tsRegex.exec(rawOutput)) !== null) {
+            foundStructured = true;
+            let matchedPath = match[1];
+            if (matchedPath.startsWith('src/') || matchedPath.startsWith('src\\')) {
+              matchedPath = `${buildRoot}/${matchedPath.replace(/\\/g, '/')}`;
+            }
+            errors.push(JSON.stringify({
+              type: 'BUILD_DIAGNOSTIC',
+              file: matchedPath,
+              line: match[2],
+              column: match[3],
+              errorCode: match[5],
+              errorMessage: match[6]
+            }));
+          }
+
+          if (!foundStructured) {
+            const rebasedRawOutput = rawOutput.replace(/(^|\s|'|"|`)(src[\\\/][^\s'"`:]+)/gm, (fullMatch, prefix, filePath) => {
+              return `${prefix}${buildRoot}/${filePath.replace(/\\/g, '/')}`;
+            });
+            errors.push(`[Build Error] Frontend build failed:\n${rebasedRawOutput}`);
+          }
+        }
+      } catch {
+        // frontend dir doesn't exist, skip build
       }
-    } catch {
-      // frontend dir doesn't exist, skip build
     }
 
     const passed = errors.length === 0;

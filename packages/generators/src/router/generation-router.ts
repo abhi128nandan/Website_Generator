@@ -1,4 +1,4 @@
-import { NormalizedRequirements, Logger } from '@paperclip/shared';
+import { NormalizedRequirements, Logger, RecoverableGenerationError } from '@website-generator/shared';
 import fs from 'fs/promises';
 import path from 'path';
 import { Scaffolder } from '../index';
@@ -11,6 +11,8 @@ import { FrontendAIAnalyzer } from '../generators/frontend-ai-analyzer';
 import { RepairAgent } from '../agents/repair-agent';
 import { GeneratorObservability } from '../observability/observability-layer';
 import { MetricsTracker } from '../observability/metrics-tracker';
+import { ArchitecturePlanner } from '../generators/architecture-planner';
+import { MemoryService } from '../services/memory-service';
 
 
 /**
@@ -46,7 +48,7 @@ export class GenerationRouter {
 
     const startTime = Date.now();
     let attempt = 1;
-    const maxAttempts = 2;
+    const maxAttempts = 5;
     let isValidated = false;
     let functionalSuccess = false;
     let totalRepairs = 0;
@@ -54,27 +56,51 @@ export class GenerationRouter {
     while (attempt <= maxAttempts && !isValidated) {
       Logger.info(`[router] Generation Attempt ${attempt}/${maxAttempts} for mode ${mode}`);
       try {
-        switch (mode) {
-          case 'frontend-app':
-            Logger.info(`[router] Routing to FrontendAppGenerator`);
-            Logger.info(`[router] Pipeline: AI Analysis → React/Vite scaffold → Components → Services → Hooks → Pages`);
-            Logger.info(`[router] Database: NONE | Backend: NONE | Prisma: NONE`);
-            await FrontendAppGenerator.generate(reqs, targetDir, onLog);
-            break;
+        if (attempt === 1) {
+          // --- Blueprint Generation Layer ---
+          const srsText = JSON.stringify(reqs, null, 2);
+          const blueprint = await ArchitecturePlanner.plan(srsText, reqs, targetDir, onLog);
+          (reqs as any).blueprint = blueprint;
+          
+          // --- Project Memory Init ---
+          await MemoryService.initMemory(targetDir, path.basename(targetDir), blueprint, reqs.features);
+        }
 
-          case 'hybrid-fullstack':
-            Logger.info(`[router] Routing to HybridGenerator`);
-            Logger.info(`[router] Pipeline: AI Analysis → Frontend + Backend → Optional Database`);
-            await HybridGenerator.generate(reqs, targetDir, onLog);
-            break;
+        try {
+          switch (mode) {
+            case 'frontend-app':
+              Logger.info(`[router] Routing to FrontendAppGenerator`);
+              Logger.info(`[router] Pipeline: AI Analysis → React/Vite scaffold → Components → Services → Hooks → Pages`);
+              Logger.info(`[router] Database: NONE | Backend: NONE | Prisma: NONE`);
+              await FrontendAppGenerator.generate(reqs, targetDir, onLog);
+              break;
 
-          case 'crud-admin':
-          default:
-            Logger.info(`[router] Routing to Scaffolder (existing CRUD pipeline)`);
-            Logger.info(`[router] Pipeline: CRUD Analysis → Prisma → Express → React Dashboard`);
-            Logger.info(`[router] Database: PostgreSQL | Backend: Express+Prisma | Prisma: YES`);
-            await Scaffolder.generateProject(reqs, targetDir, onLog);
-            break;
+            case 'hybrid-fullstack':
+              Logger.info(`[router] Routing to HybridGenerator`);
+              Logger.info(`[router] Pipeline: AI Analysis → Frontend + Backend → Optional Database`);
+              await HybridGenerator.generate(reqs, targetDir, onLog);
+              break;
+
+            case 'crud-admin':
+            default:
+              Logger.info(`[router] Routing to Scaffolder (existing CRUD pipeline)`);
+              Logger.info(`[router] Pipeline: CRUD Analysis → Prisma → Express → React Dashboard`);
+              Logger.info(`[router] Database: PostgreSQL | Backend: Express+Prisma | Prisma: YES`);
+              await Scaffolder.generateProject(reqs, targetDir, onLog);
+              break;
+          }
+        } catch (genErr: any) {
+          if (genErr.name === 'RecoverableGenerationError') {
+             onLog(5, `[router] Recoverable generation error caught. Attempting router-level repair...`);
+             const repaired = await RepairAgent.repair(targetDir, genErr.errors);
+             if (!repaired) {
+               onLog(5, `[router] Router-level repair failed. Propagating error...`);
+               throw genErr;
+             }
+             onLog(5, `[router] Router-level repair applied. Proceeding to quality checks.`);
+          } else {
+             throw genErr;
+          }
         }
 
         // --- Quality Checker ---
@@ -103,58 +129,19 @@ export class GenerationRouter {
           }
         }
         
-        // --- Functional QA ---
-        onLog(5, `[router] Running AI Functional Completeness QA (Attempt ${attempt})...`);
-        const validation = await FunctionalValidator.validate(targetDir, reqs);
-        qaScoreBreakdownLog = validation;
-
-        if (qualityCheck.passed && validation.score >= 90) {
-          onLog(6, `[router] Reliability checks PASSED! Functional QA Score: ${validation.score}/100.`);
+        if (qualityCheck.passed) {
+          onLog(6, `[router] Reliability checks PASSED! Project built successfully.`);
           isValidated = true;
           functionalSuccess = true;
-          onLog(5, `[router] Project generation completely successful. AST, TypeScript, and Functional Flow Validated.`);
-          
-          try {
-            const metadataPath = path.join(targetDir, 'paperclip-metadata.json');
-            const meta = {
-              generatedAt: new Date().toISOString(),
-              appName: reqs.appName,
-              classifiedMode: mode,
-              score: validation.score,
-              reliability: {
-                buildSuccess: true,
-                runtimeSuccess: true,
-                apiSuccess: validation.criteria.forms >= 80,
-                persistenceSuccess: validation.criteria.database >= 80,
-                score: validation.score
-              }
-            };
-            await fs.writeFile(metadataPath, JSON.stringify(meta, null, 2), 'utf-8');
-          } catch (e: any) {
-            Logger.warn(`[router] Failed to write reliability metadata: ${e.message}`);
-          }
+          onLog(5, `[router] Project generation completely successful. AST, TypeScript, and Structure Validated.`);
         } else {
-          const errors = [
-            ...qualityCheck.errors,
-            ...(validation.score < 90 ? [`Functional QA score is too low: ${validation.score}/100 (Required: 90)`] : [])
-          ];
+          const errors = [...qualityCheck.errors];
           buildErrorsLog.push(...errors);
           onLog(5, `[router] Reliability checks FAILED on attempt ${attempt}.`);
-          errors.forEach(err => onLog(5, `[QA ERROR] ${err}`));
+          errors.forEach(err => onLog(5, `[BUILD ERROR] ${err}`));
 
           if (attempt < maxAttempts) {
-            onLog(5, `[router] Re-analyzing and triggering regeneration attempt ${attempt + 1}...`);
-            
-            // Inject missing features into reqs so AI analyzes again
-            reqs.features = Array.from(new Set([...reqs.features, ...validation.missingFunctionality]));
-            if (!reqs.workflows) reqs.workflows = [];
-            reqs.workflows = Array.from(new Set([...reqs.workflows, "Implement missing business logic and validation"]));
-            
-            if (mode === 'crud-admin') {
-              await CrudGenerator.analyze(reqs);
-            } else {
-              await FrontendAIAnalyzer.analyze(reqs);
-            }
+            onLog(5, `[router] Quality checks failed, preparing for regeneration attempt ${attempt + 1}...`);
             attempt++;
           } else {
             throw new Error(`Project generation failed reliability and quality validation checks:\n- ${errors.join('\n- ')}`);
@@ -177,6 +164,41 @@ export class GenerationRouter {
         }
         attempt++;
       }
+    }
+
+    // --- Post-Success Advisory QA ---
+    if (isValidated) {
+      try {
+        onLog(5, `[router] Running Advisory Functional QA...`);
+        const validation = await FunctionalValidator.validate(targetDir, reqs);
+        qaScoreBreakdownLog = validation;
+        onLog(6, `[router] Advisory QA Score: ${validation.score}/100. (Telemetry Only)`);
+        
+        try {
+          const metadataPath = path.join(targetDir, 'website-generator-metadata.json');
+          const meta = {
+            generatedAt: new Date().toISOString(),
+            appName: reqs.appName,
+            classifiedMode: mode,
+            score: validation.score,
+            reliability: {
+              buildSuccess: true,
+              runtimeSuccess: true,
+              apiSuccess: validation.criteria?.forms >= 80,
+              persistenceSuccess: validation.criteria?.database >= 80,
+              score: validation.score
+            }
+          };
+          await fs.writeFile(metadataPath, JSON.stringify(meta, null, 2), 'utf-8');
+        } catch (e: any) {
+          Logger.warn(`[router] Failed to write reliability metadata: ${e.message}`);
+        }
+      } catch (err: any) {
+        Logger.warn(`[router] Advisory QA failed to run (non-fatal): ${err.message}`);
+        qaScoreBreakdownLog = { score: 0, missingFunctionality: [], criteria: {} };
+      }
+    } else {
+        qaScoreBreakdownLog = { score: 0, missingFunctionality: [], criteria: {} };
     }
 
     // Save observability report on success

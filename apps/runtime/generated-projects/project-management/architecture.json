@@ -1,0 +1,34 @@
+{
+  "appType": "saas-dashboard",
+  "pages": [
+    "Login",
+    "Register",
+    "Dashboard",
+    "Workspace",
+    "Profile",
+    "Settings"
+  ],
+  "entities": [
+    "User",
+    "Workspace",
+    "Board",
+    "Task",
+    "Role"
+  ],
+  "apis": [
+    "POST /api/auth/login",
+    "POST /api/auth/register",
+    "GET /api/workspaces",
+    "POST /api/workspaces",
+    "GET /api/boards/:workspaceId",
+    "POST /api/tasks",
+    "PUT /api/tasks/:taskId",
+    "DELETE /api/tasks/:taskId",
+    "GET /api/users/profile"
+  ],
+  "designTokens": {
+    "primaryColor": "#4f46e5",
+    "secondaryColor": "#0f172a",
+    "layout": "sidebar"
+  }
+}

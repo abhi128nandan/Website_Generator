@@ -1,8 +1,8 @@
-import { NormalizedRequirements, Logger } from '@paperclip/shared';
+import { NormalizedRequirements, Logger, RecoverableGenerationError } from '@website-generator/shared';
 import fs from 'fs/promises';
 import path from 'path';
 import { FrontendAIAnalyzer } from './frontend-ai-analyzer';
-import { ProviderFactory } from '@paperclip/ai-engine';
+import { ProviderFactory } from '@website-generator/ai-engine';
 import { normalizeExpressPath } from '../compiler/path-normalizer';
 import { exec } from 'child_process';
 import util from 'util';
@@ -13,9 +13,19 @@ import { ImportIntegrityValidator } from '../validators/import-integrity-validat
 import { FunctionalFlowValidator } from '../validators/functional-flow-validator';
 import { RepairAgent } from '../agents/repair-agent';
 import { OutputSanitizer } from '../validators/output-sanitizer';
+import { CodeExtractor } from '../validators/code-extractor';
+import { CodeValidityGate } from '../validators/code-validity-gate';
+import { CodePresenceGate } from '../validators/code-presence-gate';
+import { CompilationValidator } from '../validators/compilation-validator';
+import { LucideIconValidator } from '../validators/lucide-icon-validator';
+import { SystemScaffold } from '../scaffold/system-scaffold';
+import { NonCodeDetector } from '../validation/non-code-detector';
+import { ArtifactIntegrityValidator } from '../validators/artifact-integrity-validator';
+import { PipelineTracer } from '../observability/pipeline-tracer';
 import { SyntaxGate } from '../validators/syntax-gate';
 import { CompileGate } from '../validators/compile-gate';
-import { RequestQueue } from '@paperclip/ai-engine';
+import { RequestQueue } from '@website-generator/ai-engine';
+import { MetricsTracker } from '../observability/metrics-tracker';
 
 const execPromise = util.promisify(exec);
 /**
@@ -40,9 +50,71 @@ export class HybridGenerator {
 
     // === STEP 1: AI Architecture Analysis ===
     onLog(3, '[hybrid-generator] Executing AI architecture analysis...');
-    await FrontendAIAnalyzer.analyze(reqs);
+    
+    try {
+      const artifactsDir = path.join(targetDir, 'generation-artifacts');
+      await fs.mkdir(artifactsDir, { recursive: true });
+      
+      const reqsSummaryPath = path.join(artifactsDir, 'requirements-summary.json');
+      let oldReqsStr = null;
+      try { oldReqsStr = await fs.readFile(reqsSummaryPath, 'utf-8'); } catch(e) {}
+      
+      await fs.writeFile(reqsSummaryPath, JSON.stringify(reqs, null, 2), 'utf-8');
+
+      const archPath = path.join(artifactsDir, 'architecture-final.json');
+      if (await fs.stat(archPath).catch(() => false)) {
+        let isValid = true;
+        let cachedArch: any = null;
+        try {
+          cachedArch = JSON.parse(await fs.readFile(archPath, 'utf-8'));
+          
+          const { FrontendArchitectureSchema } = require('@website-generator/shared');
+          FrontendArchitectureSchema.parse(cachedArch);
+          
+          const { FrontendComplexityGuard } = require('../validators/frontend-complexity-guard');
+          await FrontendComplexityGuard.validate({ ...reqs, frontendArchitecture: cachedArch }, targetDir);
+          
+          if (oldReqsStr) {
+            const crypto = require('crypto');
+            const oldHash = crypto.createHash('md5').update(oldReqsStr).digest('hex');
+            const newHash = crypto.createHash('md5').update(JSON.stringify(reqs, null, 2)).digest('hex');
+            if (oldHash !== newHash) {
+              isValid = false;
+            }
+          }
+        } catch (e) {
+          isValid = false;
+        }
+
+        if (isValid) {
+          onLog(3, '[hybrid-generator] Found existing architecture. Reusing instead of regenerating...');
+          reqs.frontendArchitecture = cachedArch;
+        } else {
+          onLog(3, '[hybrid-generator] Invalid cached architecture. Discarding and regenerating...');
+          await fs.unlink(archPath).catch(() => {});
+        }
+      }
+    } catch(e) {}
+
+    if (!reqs.frontendArchitecture) {
+      (reqs as any).__targetDir = targetDir;
+      await FrontendAIAnalyzer.analyze(reqs);
+    }
 
     const arch = reqs.frontendArchitecture!;
+    
+    try {
+      const artifactsDir = path.join(targetDir, 'generation-artifacts');
+      await fs.writeFile(path.join(artifactsDir, 'architecture-audit.json'), JSON.stringify(arch, null, 2), 'utf-8');
+      
+      const reqFeaturesLower = reqs.features.join(' ').toLowerCase();
+      const hasAuthFeature = reqFeaturesLower.includes('auth') || reqFeaturesLower.includes('login') || reqFeaturesLower.includes('signup');
+      const hasAuthService = arch.services.some(s => s.name.toLowerCase().includes('auth'));
+      if (hasAuthService && !hasAuthFeature) {
+        onLog(4, '[ARCHITECTURE WARNING] Discovered an authService but authentication was not explicitly requested in features.');
+      }
+    } catch(e) {}
+
     onLog(3, `[hybrid-generator] Architecture: ${arch.components.length} components, ${arch.services.length} services, ${arch.hooks.length} hooks, ${arch.pages.length} pages`);
 
     // Determine if database is needed based on features/entities
@@ -125,6 +197,7 @@ export class HybridGenerator {
       } else {
         const rootError = astRes.errors[0];
         onLog(5, `Root Cause:\n${rootError.file}\n${rootError.message}\nLine ${rootError.line}`);
+        await this.recordRootCause(targetDir, path.basename(rootError.file), repairAttempts + 1, 'ASTValidator', 'AST_ERROR', rootError.message, rootError.line || 1);
       }
 
       // --- React Structure Validation ---
@@ -171,8 +244,8 @@ export class HybridGenerator {
       if (!buildPassed) {
         if (repairAttempts >= maxRepairAttempts) {
           onLog(5, `[VALIDATION] Validation/Build failed after ${maxRepairAttempts} repair attempts.`);
-          const formattedErrors = allErrors.slice(0, 10).map((e: any) => typeof e === 'string' ? e : `[${e.file}] ${e.message}`).join('\n');
-          throw new Error(`Validation/Build failed. Errors:\n${formattedErrors}`);
+          const formattedErrors = allErrors.slice(0, 10).map((e: any) => typeof e === 'string' ? e : `[${e.file}] ${e.message}`);
+          throw new RecoverableGenerationError(formattedErrors);
         }
 
         if (repairAttempts > 0 && allErrors.length > previousErrorCount) {
@@ -194,6 +267,9 @@ export class HybridGenerator {
       repairAttempts++;
     }
 
+    if (!buildPassed) {
+      throw new RecoverableGenerationError(['Validation failed after max repair attempts and the loop exited without success.']);
+    }
     onLog(5, '[hybrid-generator] All packages validated.');
 
     // === STEP 6.5: Functional Flow Validation ===
@@ -205,6 +281,7 @@ export class HybridGenerator {
     }
 
     // === STEP 7: Metadata ===
+    await MetricsTracker.incrementMetric('successfulGenerations');
     onLog(5, '[hybrid-generator] Updating project metadata...');
     try {
       const metadataPath = path.join(targetDir, 'metadata.json');
@@ -247,6 +324,25 @@ export class HybridGenerator {
     onLog(6, `[hybrid-generator] Final scaffold file count: ${generatedFiles.files.length}`);
     onLog(6, `[hybrid-generator] Project tree:\n${tree}`);
     onLog(6, '[hybrid-generator] Finalizing project...');
+    
+    // === Write Generation Summary ===
+    try {
+      const artifactsDir = path.join(targetDir, 'generation-artifacts');
+      const gateReportPath = path.join(artifactsDir, 'gate-report.json');
+      let gateFailures = 0;
+      try { gateFailures = JSON.parse(await fs.readFile(gateReportPath, 'utf-8')).length; } catch(e) {}
+      
+      const provider = ProviderFactory.getProvider();
+      const summary = {
+        provider: provider?.constructor?.name?.replace('Provider', '')?.toLowerCase() ?? 'unknown',
+        model: provider?.getModel?.() ?? 'unknown',
+        components: arch.components?.length || 0,
+        hooks: arch.hooks?.length || 0,
+        services: arch.services?.length || 0,
+        gateFailures
+      };
+      await fs.writeFile(path.join(artifactsDir, 'generation-summary.json'), JSON.stringify(summary, null, 2), 'utf-8');
+    } catch(e) {}
   }
 
   // ─────────────────────────────────────────────
@@ -303,7 +399,7 @@ export class HybridGenerator {
     // .env.example
     let envContent = 'PORT=4000\nVITE_API_URL=http://localhost:4000\n';
     if (needsDb) {
-      const dbSlug = 'paperclip_generated';
+      const dbSlug = 'websiteGenerator_generated';
       envContent += `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/${dbSlug}\n`;
     }
     await fs.writeFile(path.join(targetDir, '.env.example'), envContent, 'utf-8');
@@ -318,7 +414,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: paperclip_generated
+      POSTGRES_DB: websiteGenerator_generated
     ports:
       - "5432:5432"
 `;
@@ -377,38 +473,437 @@ pnpm run dev
     return match ? match[1].trim() : text.trim();
   }
 
-  private static async generateValidCode(provider: any, prompt: string, isTsx: boolean, onLog: (level: number, msg: string) => void): Promise<string> {
+  private static async generateValidCode(
+    provider: any, 
+    prompt: string, 
+    isTsx: boolean, 
+    artifactName: string, 
+    targetDir: string, 
+    onLog: (level: number, msg: string) => void
+  ): Promise<string> {
     let attempts = 0;
     const maxRetries = 3;
     let lastContent = '';
+    let lastErrorMessage = '';
+    
+    const artifactsDir = path.join(targetDir, 'generation-artifacts');
+    await fs.mkdir(artifactsDir, { recursive: true });
+    
+    try {
+      const finalPromptPath = path.join(artifactsDir, 'final-prompt.json');
+      let promptData: any[] = [];
+      try { promptData = JSON.parse(await fs.readFile(finalPromptPath, 'utf-8')); } catch(e) {}
+      promptData = promptData.filter((d: any) => d.artifact !== artifactName);
+      promptData.push({ artifact: artifactName, prompt: prompt });
+      await fs.writeFile(finalPromptPath, JSON.stringify(promptData, null, 2), 'utf-8');
+    } catch(e) {}
     
     while (attempts < maxRetries) {
       attempts++;
-      const aiResponse = await this.generateTextWithRetry(provider, prompt);
+      let currentPrompt = prompt;
+      if (attempts > 1) {
+        if (lastContent && lastContent.length > 50) {
+          currentPrompt = `${prompt}\n\nHere is your previous attempt which failed validation:\n\`\`\`tsx\n${lastContent}\n\`\`\`\n\nIt failed with this error:\n${lastErrorMessage}\n\nCRITICAL FIX REQUIRED: Fix ONLY this exact error. Do NOT rewrite the entire component. Do NOT add new features. Do NOT change the layout or logic unless directly related to the error. Return the FULL updated file, but KEEP your changes strictly limited to the repair.\n\nRETURN ONLY COMPLETE TYPESCRIPT/TSX SOURCE CODE.`;
+        } else {
+          currentPrompt += `\n\nRETURN ONLY COMPLETE TYPESCRIPT/TSX SOURCE CODE.\nDO NOT EXPLAIN.\nDO NOT REASON.\nDO NOT DESCRIBE.\nDO NOT USE NATURAL LANGUAGE.\nDO NOT STOP MID-FILE.\nRETURN THE FULL FILE FROM FIRST LINE TO LAST LINE.\n`;
+          if (lastErrorMessage) {
+            if (lastErrorMessage.includes('COMPONENT_TOO_LARGE')) {
+              currentPrompt += `\n\nCRITICAL FIX REQUIRED: The previous attempt failed because the component was too large. YOU MUST extract child components and avoid monolithic 'God Objects'. Do not inline all JSX and state. You MUST import and compose your sibling components based on the architecture manifest.\n`;
+            } else if (lastErrorMessage.includes('COMPILE_ERROR')) {
+              currentPrompt += `\n\nCRITICAL FIX REQUIRED: The previous attempt failed compilation with the following error:\n${lastErrorMessage}\nPlease fix the TypeScript errors in your next response.\n`;
+            } else {
+              currentPrompt += `\n\nCRITICAL FIX REQUIRED: The previous attempt failed with the following error:\n${lastErrorMessage}\nPlease fix this error in your next response.\n`;
+            }
+          }
+        }
+        
+        try {
+          const cascadeTracePath = path.join(artifactsDir, 'retry-cascade-trace.json');
+          let cascadeTrace: any[] = [];
+          try { cascadeTrace = JSON.parse(await fs.readFile(cascadeTracePath, 'utf-8')); } catch(e) {}
+          cascadeTrace.push({
+            artifact: artifactName,
+            attempt: attempts,
+            previousFailureReason: lastErrorMessage,
+            retryPromptLength: currentPrompt.length,
+            lastContentSize: lastContent ? lastContent.length : 0,
+            timestamp: new Date().toISOString()
+          });
+          await fs.writeFile(cascadeTracePath, JSON.stringify(cascadeTrace, null, 2), 'utf-8');
+        } catch(e) {}
+      }
+      const aiResponse = await this.generateTextWithRetry(provider, currentPrompt);
       
-      let code = OutputSanitizer.sanitize(aiResponse);
+      let trace: any = null;
+      try {
+        trace = await PipelineTracer.initializeTrace(targetDir, artifactName, provider.id || 'unknown', provider.model || 'unknown');
+        await PipelineTracer.recordRaw(targetDir, trace, aiResponse);
+      } catch(e) {}
+
+      try {
+        const rawOutputDir = path.join(artifactsDir, 'raw-output');
+        await fs.mkdir(rawOutputDir, { recursive: true });
+        const aiResponsePath = path.join(rawOutputDir, `${artifactName}.attempt${attempts}.txt`);
+        await fs.writeFile(aiResponsePath, aiResponse, 'utf-8');
+      } catch(e) {}
+      
+      // [PIPELINE] output sanitizer
+      onLog(4, '[PIPELINE]\nOutputSanitizer executed');
+      let sanitizedResult = OutputSanitizer.sanitizeWithDiagnostics(aiResponse);
+      let code = sanitizedResult.code;
       if (!code) {
         code = this.extractCodeBlock(aiResponse);
-        code = OutputSanitizer.sanitize(code);
+        sanitizedResult = OutputSanitizer.sanitizeWithDiagnostics(code);
+        code = sanitizedResult.code;
       }
+      
+      try {
+        if (trace) await PipelineTracer.recordSanitized(targetDir, trace, code);
+      } catch(e) {}
+
+      try {
+        const pipelinePath = path.join(artifactsDir, 'pipeline-order.json');
+        let order: string[] = [];
+        try { order = JSON.parse(await fs.readFile(pipelinePath, 'utf-8')); } catch(e) {}
+        order.push(`[Attempt ${attempts}] OutputSanitizer executed`);
+        await fs.writeFile(pipelinePath, JSON.stringify(order, null, 2), 'utf-8');
+      } catch(e) {}
+
+      try {
+        const sanitizedOutputDir = path.join(artifactsDir, 'sanitized-output');
+        await fs.mkdir(sanitizedOutputDir, { recursive: true });
+        const sanitizedResponsePath = path.join(sanitizedOutputDir, `${artifactName}.attempt${attempts}.txt`);
+        await fs.writeFile(sanitizedResponsePath, code, 'utf-8');
+      } catch(e) {}
+
+      try {
+        const reportPath = path.join(artifactsDir, 'sanitizer-report.json');
+        let reports: any[] = [];
+        try { reports = JSON.parse(await fs.readFile(reportPath, 'utf-8')); } catch(e) {}
+        reports.push({
+          artifact: artifactName,
+          attempt: attempts,
+          diagnostics: sanitizedResult.diagnostics,
+          timestamp: new Date().toISOString()
+        });
+        await fs.writeFile(reportPath, JSON.stringify(reports, null, 2), 'utf-8');
+      } catch(e) {}
+      
+      onLog(4, '[PIPELINE]\nCodeExtractor executed');
+      let extractedCode = code;
+      let diagnosticIntegrityResult: any = null;
+      let diagnosticCompilationResult: any = null;
+      try {
+        const pipelinePath = path.join(artifactsDir, 'pipeline-order.json');
+        let order: string[] = [];
+        try { order = JSON.parse(await fs.readFile(pipelinePath, 'utf-8')); } catch(e) {}
+        order.push(`[Attempt ${attempts}] CodeExtractor executed`);
+        await fs.writeFile(pipelinePath, JSON.stringify(order, null, 2), 'utf-8');
+      } catch(e) {}
+      
+      try {
+        const extracted = CodeExtractor.extractCodeArtifact(code, isTsx, artifactName, true);
+        if (!extracted.success) {
+          if (extracted.reason?.startsWith('INCOMPLETE_ARTIFACT')) {
+            throw new Error(extracted.reason);
+          }
+          throw new Error(extracted.reason || "INVALID_CODE_ARTIFACT");
+        }
+        extractedCode = extracted.code;
+        
+        const validityGate = CodeValidityGate.validate(extractedCode);
+        if (!validityGate.isValid) {
+          throw new Error(validityGate.reason || "INVALID_TYPESCRIPT_ARTIFACT");
+        }
+
+        const iconValidation = LucideIconValidator.validate(extractedCode);
+        if (!iconValidation.isValid) {
+          throw new Error(iconValidation.reason || "INVALID_LUCIDE_ICON");
+        }
+        
+        try {
+          if (trace) await PipelineTracer.recordExtracted(targetDir, trace, extractedCode, code);
+          PipelineTracer.runCorruptionDetector(extractedCode);
+        } catch(e: any) {
+          throw new Error(e.message);
+        }
+
+        const integrityResult = ArtifactIntegrityValidator.validate(extractedCode, artifactName, isTsx);
+        diagnosticIntegrityResult = integrityResult;
+        if (!integrityResult.valid) {
+          onLog(4, `[ARTIFACT INTEGRITY FAILURE]\nArtifact: ${artifactName}\nReason: ${integrityResult.reason}\nPreview: ${integrityResult.preview}`);
+          if (integrityResult.reason?.startsWith('INCOMPLETE_ARTIFACT')) {
+            throw new Error("INCOMPLETE_ARTIFACT: " + integrityResult.reason);
+          } else {
+            try {
+              const first20Raw = aiResponse.split('\n').slice(0, 20).join('\n');
+              const first20Sanitized = extractedCode.split('\n').slice(0, 20).join('\n');
+              const reportPath = path.join(process.cwd(), 'generation-artifacts', 'rejection-report.json');
+              let reportData: any[] = [];
+              const fsSync = require('fs');
+              if (fsSync.existsSync(reportPath)) {
+                try { reportData = JSON.parse(fsSync.readFileSync(reportPath, 'utf8')); } catch(e){}
+              }
+              reportData.push({
+                artifact: artifactName,
+                rawOutputFirst20: first20Raw,
+                sanitizedOutputFirst20: first20Sanitized,
+                rejectionRule: "ArtifactIntegrityValidator: " + integrityResult.reason
+              });
+              fsSync.mkdirSync(path.dirname(reportPath), { recursive: true });
+              fsSync.writeFileSync(reportPath, JSON.stringify(reportData, null, 2), 'utf8');
+            } catch(e) {}
+            
+            throw new Error("ARTIFACT_INTEGRITY_FAILURE: " + integrityResult.reason);
+          }
+        }
+
+        const compilationResult = CompilationValidator.validate(extractedCode, isTsx, targetDir);
+        diagnosticCompilationResult = compilationResult;
+        if (!compilationResult.success) {
+          throw new Error("COMPILATION_VALIDATION_FAILURE");
+        }
+
+        const nonCodeResult = NonCodeDetector.validate(extractedCode);
+        if (!nonCodeResult.valid) {
+          throw new Error(nonCodeResult.reason);
+        }
+
+        const { BusinessLogicAudit } = require('./business-logic-audit');
+        if (isTsx) {
+          BusinessLogicAudit.auditFrontend(extractedCode, []);
+        }
+        
+        const { PlaceholderBusinessLogicValidator } = require('../validators/placeholder-validator');
+        PlaceholderBusinessLogicValidator.audit(extractedCode);
+      } catch (err: any) {
+        onLog(4, `[GENERATION]\nArtifact: ${artifactName}\nAttempt: ${attempts}\n\nCodeValidation:\nFAILED\n\nReason:\n${err.message}`);
+        await this.recordRootCause(targetDir, artifactName, attempts, 'NonCodeDetector', 'INVALID_NON_CODE_OUTPUT', err.message, 1);
+        lastContent = aiResponse;
+        lastErrorMessage = err.message;
+        try { await PipelineTracer.updateHealth(targetDir, 'corruption'); } catch(e){}
+        
+        let failureStage = 'CodeValidation';
+        if (err.message.includes('REASONING_DETECTED')) failureStage = 'CodePresenceGate';
+        else if (err.message.includes('INVALID_REASONING_ARTIFACT')) failureStage = 'CodeExtractor';
+        else if (err.message.includes('Contains reasoning phrase') || err.message.includes('English sentences')) failureStage = 'ArtifactIntegrityValidator';
+        
+        if (err.message.includes('REASONING') || err.message.includes('OUTPUT_SANITIZER_FAILURE') || err.message.includes('reasoning phrase') || err.message.includes('English sentences')) {
+          try {
+            const debugPath = path.join(artifactsDir, 'reasoning-failure-debug.json');
+            let debugData: any[] = [];
+            try { debugData = JSON.parse(await fs.readFile(debugPath, 'utf-8')); } catch(e) {}
+            debugData.push({
+              componentName: artifactName,
+              rawOutput: aiResponse,
+              sanitizedOutput: code,
+              extractedCode: extractedCode || null,
+              integrityValidatorResult: diagnosticIntegrityResult || null,
+              compilationValidatorResult: diagnosticCompilationResult || null,
+              exactFailureStage: failureStage
+            });
+            await fs.writeFile(debugPath, JSON.stringify(debugData, null, 2), 'utf-8');
+          } catch(e) {}
+        }
+        
+        // DIAGNOSTIC LOGGING FOR EVERY FAILURE
+        try {
+          await fs.writeFile(path.join(artifactsDir, 'raw-output.txt'), aiResponse, 'utf-8');
+          await fs.writeFile(path.join(artifactsDir, 'sanitized-output.txt'), code, 'utf-8');
+          await fs.writeFile(path.join(artifactsDir, 'extracted-output.txt'), extractedCode, 'utf-8');
+
+          const debugPath = path.join(artifactsDir, 'pipeline-debug.json');
+          let debugData: any[] = [];
+          try { debugData = JSON.parse(await fs.readFile(debugPath, 'utf-8')); } catch(e) {}
+          debugData.push({
+            componentName: artifactName,
+            rawOutput: aiResponse,
+            sanitizedOutput: code,
+            extractedCode: extractedCode,
+            failureCategory: err.message,
+            validatorResults: {
+              artifactIntegrity: diagnosticIntegrityResult,
+              compilation: diagnosticCompilationResult
+            },
+            timestamp: new Date().toISOString()
+          });
+          await fs.writeFile(debugPath, JSON.stringify(debugData, null, 2), 'utf-8');
+        } catch(e) {}
+        
+        continue;
+      }
+      
+      try {
+        const extractedOutputDir = path.join(artifactsDir, 'extracted-output');
+        await fs.mkdir(extractedOutputDir, { recursive: true });
+        const extractedResponsePath = path.join(extractedOutputDir, `${artifactName}.attempt${attempts}.tsx`);
+        await fs.writeFile(extractedResponsePath, extractedCode, 'utf-8');
+      } catch(e) {}
+      
+      code = extractedCode;
       
       lastContent = code;
+      
+      onLog(4, '[PIPELINE]\nSyntaxGate executed');
+      try {
+        const pipelinePath = path.join(artifactsDir, 'pipeline-order.json');
+        let order: string[] = [];
+        try { order = JSON.parse(await fs.readFile(pipelinePath, 'utf-8')); } catch(e) {}
+        order.push(`[Attempt ${attempts}] SyntaxGate executed`);
+        await fs.writeFile(pipelinePath, JSON.stringify(order, null, 2), 'utf-8');
+      } catch(e) {}
+      
+      const rawContainsThink = aiResponse.toLowerCase().includes('<think');
+      const sanitizedContainsThink = code.toLowerCase().includes('<think');
+      const rawContainsFence = aiResponse.includes('```');
+      const sanitizedContainsFence = code.includes('```');
+      
+      console.log(`[DEBUG]
+RAW OUTPUT LENGTH: ${aiResponse.length}
+SANITIZED OUTPUT LENGTH: ${code.length}
+rawContainsThink=${rawContainsThink}
+sanitizedContainsThink=${sanitizedContainsThink}
+rawContainsFence=${rawContainsFence}
+sanitizedContainsFence=${sanitizedContainsFence}`);
+
+      const conversationalPrefixes = [
+        /^here is/i, /^sure/i, /^this component/i, /^typescript\s*$/im, /^tsx\s*$/im
+      ];
+      const hasConversationalPrefix = conversationalPrefixes.some(p => p.test(code.trimStart()));
+
+      if (hasConversationalPrefix) {
+        onLog(4, `[GENERATION]\nArtifact: ${artifactName}\nAttempt: ${attempts}\n\nPreParseGate:\nFAILED\n\nReason:\nOutput starts with forbidden conversational text.`);
+        await this.recordRootCause(targetDir, artifactName, attempts, 'PreParseGate', 'CONVERSATIONAL_TEXT', 'Output contains conversational prefix', 1);
+        continue;
+      }
+
+      console.log("[DEBUG] extracted code preview", code.slice(0, 200));
+
       const syntaxGate = SyntaxGate.validate(code, isTsx);
       if (!syntaxGate.isValid) {
-        onLog(4, `[WARN] SyntaxGate failed (Attempt ${attempts}/${maxRetries}): ${syntaxGate.error}`);
+        onLog(4, `[GENERATION]\nArtifact: ${artifactName}\nAttempt: ${attempts}\n\nSyntaxGate:\nFAILED\n\nReason:\n${syntaxGate.error}`);
+        onLog(4, `[SYNTAX FAILURE]\nArtifact: ${artifactName}\nGenerated Output Preview: ${code.slice(0, 300)}\nParser Error:\n${syntaxGate.error}\n\nFirst 20 lines:\n${code.split('\\n').slice(0, 20).join('\\n')}`);
+        
+        await this.recordRootCause(targetDir, artifactName, attempts, 'SyntaxGate', 'SYNTAX_ERROR', syntaxGate.error || 'Syntax parsing failed', 1);
+        lastContent = extractedCode || code;
+        lastErrorMessage = syntaxGate.error || 'Syntax parsing failed';
+        await MetricsTracker.incrementMetric('syntaxGateFailures');
+        
+        try {
+          const gateReportPath = path.join(artifactsDir, 'gate-report.json');
+          let reports: any[] = [];
+          try { reports = JSON.parse(await fs.readFile(gateReportPath, 'utf-8')); } catch(e) {}
+          reports.push({ artifact: artifactName, attempt: attempts, gate: 'SyntaxGate', error: syntaxGate.error, timestamp: new Date().toISOString() });
+          await fs.writeFile(gateReportPath, JSON.stringify(reports, null, 2), 'utf-8');
+          
+          const syntaxFailReportPath = path.join(artifactsDir, 'syntax-failure-report.json');
+          let syntaxReports: any[] = [];
+          try { syntaxReports = JSON.parse(await fs.readFile(syntaxFailReportPath, 'utf-8')); } catch(e) {}
+          syntaxReports.push({
+            artifact: artifactName,
+            rawPreview: aiResponse.slice(0, 300),
+            sanitizedPreview: code.slice(0, 300),
+            parserError: syntaxGate.error
+          });
+          await fs.writeFile(syntaxFailReportPath, JSON.stringify(syntaxReports, null, 2), 'utf-8');
+        } catch(e) {}
+        
+        try {
+          if (trace) {
+            trace.syntaxGate.passed = false;
+            trace.syntaxGate.error = syntaxGate.error;
+            await PipelineTracer.saveTrace(targetDir, trace);
+            await PipelineTracer.updateHealth(targetDir, 'syntax');
+          }
+        } catch(e) {}
+        
         continue;
       }
       
-      const compileGate = CompileGate.validate(code, isTsx);
+      onLog(4, '[PIPELINE]\nCompileGate executed');
+      try {
+        const pipelinePath = path.join(artifactsDir, 'pipeline-order.json');
+        let order: string[] = [];
+        try { order = JSON.parse(await fs.readFile(pipelinePath, 'utf-8')); } catch(e) {}
+        order.push(`[Attempt ${attempts}] CompileGate executed`);
+        await fs.writeFile(pipelinePath, JSON.stringify(order, null, 2), 'utf-8');
+      } catch(e) {}
+      
+      const compileGate = CompileGate.validate(code, isTsx, artifactName, artifactsDir);
       if (!compileGate.isValid) {
-        onLog(4, `[WARN] CompileGate failed (Attempt ${attempts}/${maxRetries}): ${compileGate.error}`);
+        // Find line number from TS error if present (e.g. line 17)
+        const lineMatch = compileGate.error?.match(/Line (\d+)/i) || compileGate.error?.match(/\((\d+),/);
+        const line = lineMatch ? parseInt(lineMatch[1]) : 1;
+        // Simple extraction for errorCode if it looks like TS1005
+        const codeMatch = compileGate.error?.match(/(TS\d+)/);
+        const errorCode = codeMatch ? codeMatch[1] : 'COMPILE_ERROR';
+        
+        onLog(4, `[GENERATION]\nArtifact: ${artifactName}\nAttempt: ${attempts}\n\nCompileGate:\nFAILED\n\n${errorCode} ${compileGate.error}\n\nLine ${line}`);
+        await this.recordRootCause(targetDir, artifactName, attempts, 'CompileGate', errorCode, compileGate.error || 'Compilation failed', line);
+        lastContent = extractedCode || code;
+        lastErrorMessage = compileGate.error || 'Compilation failed';
+        await MetricsTracker.incrementMetric('compileGateFailures');
+        
+        try {
+          const gateReportPath = path.join(artifactsDir, 'gate-report.json');
+          let reports: any[] = [];
+          try { reports = JSON.parse(await fs.readFile(gateReportPath, 'utf-8')); } catch(e) {}
+          reports.push({ artifact: artifactName, attempt: attempts, gate: 'CompileGate', error: compileGate.error, timestamp: new Date().toISOString() });
+          await fs.writeFile(gateReportPath, JSON.stringify(reports, null, 2), 'utf-8');
+        } catch(e) {}
+        
+        try {
+          if (trace) {
+            trace.compileGate.passed = false;
+            trace.compileGate.error = compileGate.error;
+            await PipelineTracer.saveTrace(targetDir, trace);
+            await PipelineTracer.updateHealth(targetDir, 'compile');
+          }
+        } catch(e) {}
+        
         continue;
+      }
+      
+      try {
+        if (trace) {
+          trace.syntaxGate.passed = true;
+          trace.compileGate.passed = true;
+          await PipelineTracer.saveTrace(targetDir, trace);
+          await PipelineTracer.updateHealth(targetDir, 'success');
+        }
+      } catch(e) {}
+      
+      if (code.includes('<TRACEABILITY_FAILURE>')) {
+        throw new Error('Generation failure: Missing requirement coverage detected by LLM during generation.');
       }
       
       return code;
     }
     
+    const failedArtifactsDir = path.join(targetDir, 'generation-artifacts', 'failed-artifacts');
+    await fs.mkdir(failedArtifactsDir, { recursive: true });
+    const ext = isTsx ? 'tsx' : 'ts';
+    await fs.writeFile(path.join(failedArtifactsDir, `${artifactName}.attempt${attempts}.${ext}`), lastContent, 'utf-8');
+    
     throw new Error(`Generation gates failed after ${maxRetries} attempts. Generation aborted for this artifact.`);
+  }
+
+  private static async recordRootCause(targetDir: string, artifact: string, attempt: number, gate: string, errorCode: string, message: string, line: number) {
+    const reportPath = path.join(targetDir, 'generation-artifacts', 'root-cause-report.json');
+    try {
+      await fs.mkdir(path.dirname(reportPath), { recursive: true });
+      let data: any[] = [];
+      try {
+        const content = await fs.readFile(reportPath, 'utf-8');
+        data = JSON.parse(content);
+      } catch (e) {}
+      
+      // Only record the first root cause for an artifact
+      if (!data.some(d => d.artifact === artifact)) {
+        data.push({ artifact, attempt, gate, errorCode, message, line });
+        await fs.writeFile(reportPath, JSON.stringify(data, null, 2), 'utf-8');
+      }
+    } catch (e) {}
   }
 
   private static async generateFrontendPackage(frontendDir: string, reqs: NormalizedRequirements, onLog: (step: number, message: string) => void): Promise<void> {
@@ -432,6 +927,7 @@ pnpm run dev
         axios: '^1.7.2',
         'react-router-dom': '^6.25.0',
         'lucide-react': '^0.408.0',
+        '@tanstack/react-query': '^5.51.11',
       },
       devDependencies: {
         '@types/react': '^18.3.3',
@@ -496,18 +992,17 @@ export default {
     await fs.mkdir(path.join(srcDir, 'hooks'), { recursive: true });
     await fs.mkdir(path.join(srcDir, 'pages'), { recursive: true });
 
-    const mainTsx = `import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
-`;
+    const mainTsx = SystemScaffold.getMainTsxContent();
     await fs.writeFile(path.join(srcDir, 'main.tsx'), mainTsx);
+
+    // Error Authority Scaffold
+    await SystemScaffold.generateErrorAuthority(srcDir);
+
+    // Query Authority Scaffold
+    await SystemScaffold.generateQueryAuthority(srcDir);
+
+    // Auth Authority Scaffold
+    await SystemScaffold.generateAuthAuthority(srcDir);
 
     const indexCss = `@tailwind base;
 @tailwind components;
@@ -529,7 +1024,11 @@ body {
     const arch = reqs.frontendArchitecture;
 
     // === App.tsx ===
+    const hasProtectedPages = arch && arch.pages.some((p: any) => p.isProtected);
     let appTsx = `import React from 'react'\nimport { BrowserRouter, Routes, Route } from 'react-router-dom'\n`;
+    if (hasProtectedPages) {
+      appTsx = `import React from 'react'\nimport { BrowserRouter, Routes, Route } from 'react-router-dom'\nimport { ProtectedRoute } from './components/system/ProtectedRoute'\n`;
+    }
     if (arch && arch.pages.length > 0) {
       for (const page of arch.pages) {
         appTsx += `import ${page.componentName} from './pages/${page.componentName}'\n`;
@@ -538,7 +1037,14 @@ body {
     appTsx += `\nfunction App() {\n  return (\n    <BrowserRouter>\n      <Routes>\n`;
     if (arch && arch.pages.length > 0) {
       for (const page of arch.pages) {
-        appTsx += `        <Route path="${page.route}" element={<${page.componentName} />} />\n`;
+        let element = `<${page.componentName} />`;
+        if (page.isProtected) {
+          const rolesAttr = page.allowedRoles && page.allowedRoles.length > 0
+            ? ` allowedRoles={[${page.allowedRoles.map((r: string) => `'${r}'`).join(', ')}]}`
+            : '';
+          element = `<ProtectedRoute${rolesAttr}>${element}</ProtectedRoute>`;
+        }
+        appTsx += `        <Route path="${page.route}" element={${element}} />\n`;
       }
     } else {
       appTsx += `        <Route path="/" element={
@@ -567,6 +1073,13 @@ body {
     if (arch && arch.components.length > 0) {
       for (const comp of arch.components) {
         if (comp.type === 'page') continue;
+
+        const compPath = path.join(srcDir, 'components', `${comp.name}.tsx`);
+        if (await fs.stat(compPath).catch(() => false)) {
+          onLog(4, `[hybrid-generator] Skipping AI Component: ${comp.name} (already exists)`);
+          continue;
+        }
+
         onLog(4, `[hybrid-generator] Generating AI Component: ${comp.name}...`);
         
         const prompt = `You are an expert React and Tailwind developer building components for a ${reqs.appName} application.
@@ -578,14 +1091,74 @@ Description: ${comp.description}
 Requirements:
 - Use TypeScript and functional components.
 - Use Tailwind CSS for all styling, ensuring it looks beautiful, premium, and modern.
-- For icons, ONLY use 'lucide-react'. Valid icon names include: Search, Cloud, Sun, Moon, Wind, Droplets, Thermometer, MapPin, Clock, RefreshCw, Loader, AlertCircle, ChevronDown, ChevronUp, X, Menu, Home, Settings, Star, Heart, Eye, Trash2, Edit, Plus, Check, ArrowLeft, ArrowRight. Do NOT use icon names from other libraries (no Fi*, no Magnifying*, no Fa* prefixes).
+- For icons, ONLY use 'lucide-react'. Valid icon names include: Equal, Divide, Minus, Plus, Search, Cloud, Sun, Moon, Wind, Droplets, Thermometer, MapPin, Clock, RefreshCw, Loader, AlertCircle, ChevronDown, ChevronUp, X, Menu, Home, Settings, Star, Heart, Eye, Trash2, Edit, Check, ArrowLeft, ArrowRight. Do NOT use 'Equals' or 'EqualsNot', use 'Equal' and 'NotEqualTo' instead. Do NOT use icon names from other libraries (no Fi*, no Magnifying*, no Fa* prefixes).
 - Accept props via a typed interface and export the component as default export.
 - Add reasonable interactive elements, hover states, and animations.
 - Do NOT import any relative files, pages, hooks, or services. All styling and rendering logic must be self-contained in this single component file.
-- Return ONLY valid TypeScript/TSX source code. Do not include: explanations, markdown, reasoning, XML tags, think tags, or comments describing the solution.
+- Return ONLY valid TypeScript/TSX source code. Do NOT explain. Do NOT reason. Do NOT describe. Do NOT use markdown fences. Do NOT use conversational text.
+
+HOOK CONTRACT RULES
+If a generated custom hook exists for this feature:
+- You MUST import and use the hook.
+- DO NOT duplicate hook logic.
+- DO NOT write inline useEffect fetching logic.
+- DO NOT directly fetch data inside the component.
+Violations are forbidden.
+
+SERVICE CONTRACT RULES
+If a generated Service exists:
+- All API access MUST go through the Service.
+- Components MUST NOT call fetch().
+- Components MUST NOT call axios directly.
+- Components MUST consume Services through Hooks whenever available.
+Violations are forbidden.
+
+CONTEXT CONTRACT RULES
+If Context Providers are generated:
+- They MUST be mounted.
+- The root application tree MUST be wrapped.
+- Generated components MUST consume the generated Context.
+Do not create duplicate local state when Context exists.
+
+AUTHENTICATION AUTHORITY RULES
+- Authentication state MUST come from useAuth().
+- Components MUST NOT implement their own authentication contexts.
+- Components MUST NOT store authentication state in local React state.
+- Role authorization MUST use ProtectedRoute.
+- Pages MUST NOT implement custom role routing or perform manual redirects.
+- Route protection MUST be delegated to ProtectedRoute.
+- Services MUST remain authentication-agnostic and MUST NOT import React hooks.
+
+ARCHITECTURE CONTRACT
+Generated architecture is authoritative.
+Generated Components must consume:
+- Services
+- Hooks
+- Contexts
+instead of recreating them.
+Do not generate parallel implementations.
+
+FORBIDDEN:
+- Do NOT use placeholder comments like "TODO", "FIXME", "Business Logic:", "Validation goes here", "Implement logic", "Placeholder", or "implement later".
+- Do NOT use pseudo-code.
+- Do NOT leave empty handlers or functions.
+
+REQUIRED:
+- Executable validation (e.g. Zod schemas or manual client-side if-statements)
+- Executable state mutations and API calls
+- Executable error handling (display error messages to the user)
+
+Return ONLY valid TypeScript or TSX source code.
+Do NOT explain your reasoning.
+Do NOT describe the solution.
+Do NOT provide planning text.
+Do NOT provide markdown.
+Do NOT provide code fences.
+Do NOT include comments outside the source file.
+Your entire response must be a compilable source file.
 `;
         try {
-          const compTsx = await this.generateValidCode(provider, prompt, true, onLog);
+          const compTsx = await this.generateValidCode(provider, prompt, true, comp.name, frontendDir, onLog);
           await fs.writeFile(path.join(srcDir, 'components', `${comp.name}.tsx`), compTsx);
         } catch (e: any) {
           onLog(4, `[FATAL] Generation Failed: Invalid AI output detected. (${e.message})`);
@@ -597,14 +1170,25 @@ Requirements:
     // === Generate services ===
     if (arch && arch.services.length > 0) {
       for (const svc of arch.services) {
+        const svcPath = path.join(srcDir, 'services', `${svc.name}.ts`);
+        if (await fs.stat(svcPath).catch(() => false)) {
+          onLog(4, `[hybrid-generator] Skipping AI Service: ${svc.name} (already exists)`);
+          continue;
+        }
+
         onLog(4, `[hybrid-generator] Generating AI Service: ${svc.name}...`);
         
+        const apiAuthorityRules = (svc as any).endpoints && (svc as any).endpoints.length > 0
+          ? `\nAPI AUTHORITY RULES:\n- You MUST implement every endpoint listed below.\n- Do NOT invent endpoints.\n- Do NOT omit endpoints.\n- Use the specified HTTP methods exactly.\n- Use the specified paths exactly.\nEndpoints are authoritative. Do not infer alternatives.\n${(svc as any).endpoints.map((e: any) => `[${e.method}] ${e.path}: ${e.description}`).join('\n')}\n`
+          : '';
+
         const prompt = `You are an expert TypeScript developer building API services for a ${reqs.appName} application.
 App Features: ${reqs.features.join(', ')}
 
 Task: Write a fully functional API service named "${svc.name}".
 Description: ${svc.description}
 External API Required: ${svc.externalApi ? svc.externalApi : 'None. Assume a local Express API backend.'}
+${apiAuthorityRules}
 
 Requirements:
 - Use 'axios' for HTTP requests.
@@ -614,10 +1198,30 @@ Requirements:
 - Provide realistic default implementations or fallbacks if the API key or endpoint fails.
 - Do NOT import any relative modules or non-existent files. All helper functions and domain logic must be contained entirely within this single file.
 - If using try/catch, DO NOT type the catch variable as \`any\` (e.g. use \`catch (e)\` or \`catch (error)\`, NOT \`catch (e: any)\`).
-- Return ONLY valid TypeScript/TSX source code. Do not include: explanations, markdown, reasoning, XML tags, think tags, or comments describing the solution.
+- Services MUST remain authentication-agnostic and MUST NOT import React hooks (such as useAuth()). All auth tokens or headers must be passed as pure function arguments.
+- Return ONLY valid TypeScript/TSX source code. Do NOT explain. Do NOT reason. Do NOT describe. Do NOT use markdown fences. Do NOT use conversational text.
+
+FORBIDDEN:
+- Do NOT use placeholder comments like "TODO", "FIXME", "Business Logic:", "Validation goes here", "Implement logic", "Placeholder", or "implement later".
+- Do NOT use pseudo-code.
+- Do NOT leave empty handlers or functions.
+
+REQUIRED:
+- Executable validation (e.g. Zod schemas or manual client-side if-statements)
+- Executable state mutations and API calls
+- Executable error handling (display error messages to the user)
+
+Return ONLY valid TypeScript or TSX source code.
+Do NOT explain your reasoning.
+Do NOT describe the solution.
+Do NOT provide planning text.
+Do NOT provide markdown.
+Do NOT provide code fences.
+Do NOT include comments outside the source file.
+Your entire response must be a compilable source file.
 `;
         try {
-          const svcTs = await this.generateValidCode(provider, prompt, false, onLog);
+          const svcTs = await this.generateValidCode(provider, prompt, false, svc.name, frontendDir, onLog);
           await fs.writeFile(path.join(srcDir, 'services', `${svc.name}.ts`), svcTs);
         } catch (e: any) {
           onLog(4, `[FATAL] Generation Failed: Invalid AI output detected. (${e.message})`);
@@ -640,6 +1244,12 @@ Requirements:
 
     if (arch && arch.hooks.length > 0) {
       for (const hook of arch.hooks) {
+        const hookPath = path.join(srcDir, 'hooks', `${hook.name}.ts`);
+        if (await fs.stat(hookPath).catch(() => false)) {
+          onLog(4, `[hybrid-generator] Skipping AI Hook: ${hook.name} (already exists)`);
+          continue;
+        }
+
         onLog(4, `[hybrid-generator] Generating AI Hook: ${hook.name}...`);
 
         let serviceBlock: string;
@@ -671,16 +1281,51 @@ Description: ${hook.description}
 
 ${serviceBlock}
 
+REACT QUERY AUTHORITY RULES:
+- Server state MUST use \`useQuery\` from \`@tanstack/react-query\`.
+- Mutations MUST use \`useMutation\` from \`@tanstack/react-query\`.
+- Do NOT use \`useEffect\` for API fetching.
+- Do NOT manually synchronize server state with \`useState\`.
+- Do NOT prop-drill refresh callbacks.
+- Query keys MUST follow authority contract (deterministic arrays):
+  - Collection: \`['entityName']\` (e.g. \`['users']\`)
+  - Detail: \`['entityName', id]\` (e.g. \`['users', id]\`)
+  - Nested: \`['entityName', id, 'relation']\` (e.g. \`['projects', projectId, 'tasks']\`)
+- Mutations MUST automatically call \`queryClient.invalidateQueries({ queryKey: [...] })\` in \`onSuccess\` to synchronize state.
+- Import \`useQueryClient\` to access the query client for invalidation.
+- Prefer authoritative endpoint contracts from the service. Do not invent endpoint behavior.
+
 Requirements:
-- Use standard React hooks (useState, useEffect, useCallback).
+- Use \`@tanstack/react-query\` for all server state and mutations.
+- Do NOT use \`useEffect\` or \`useState\` for data fetching.
 ${serviceRequirements}
 - Export the hook as a NAMED export: \`export function ${hook.name}(...) { ... }\` or \`export const ${hook.name} = (...) => { ... }\`. Do NOT use export default.
 - Return state (data, loading, error) and any relevant mutator/refresh functions.
 - If using try/catch, DO NOT type the catch variable as \`any\` (e.g. use \`catch (e)\` or \`catch (error)\`, NOT \`catch (e: any)\`).
-- Return ONLY valid TypeScript/TSX source code. Do not include: explanations, markdown, reasoning, XML tags, think tags, or comments describing the solution.
+- Query hooks should obtain the auth token via const { user } = useAuth() and pass it as an argument to services (e.g. service.getUsers(user?.token)). Do NOT store auth state locally in the hook. If useAuth is consumed, import it using: \`import { useAuth } from './useAuth'\` or \`import { useAuth } from '../hooks/useAuth'\` depending on the directory.
+- Return ONLY valid TypeScript/TSX source code. Do NOT explain. Do NOT reason. Do NOT describe. Do NOT use markdown fences. Do NOT use conversational text.
+
+FORBIDDEN:
+- Do NOT use placeholder comments like "TODO", "FIXME", "Business Logic:", "Validation goes here", "Implement logic", "Placeholder", or "implement later".
+- Do NOT use pseudo-code.
+- Do NOT leave empty handlers or functions.
+
+REQUIRED:
+- Executable validation (e.g. Zod schemas or manual client-side if-statements)
+- Executable state mutations and API calls
+- Executable error handling (display error messages to the user)
+
+Return ONLY valid TypeScript or TSX source code.
+Do NOT explain your reasoning.
+Do NOT describe the solution.
+Do NOT provide planning text.
+Do NOT provide markdown.
+Do NOT provide code fences.
+Do NOT include comments outside the source file.
+Your entire response must be a compilable source file.
 `;
         try {
-          const hookTs = await this.generateValidCode(provider, prompt, false, onLog);
+          const hookTs = await this.generateValidCode(provider, prompt, false, hook.name, frontendDir, onLog);
           await fs.writeFile(path.join(srcDir, 'hooks', `${hook.name}.ts`), hookTs);
         } catch (e: any) {
           onLog(4, `[FATAL] Generation Failed: Invalid AI output detected. (${e.message})`);
@@ -712,17 +1357,23 @@ ${serviceRequirements}
 
     if (arch && arch.pages.length > 0) {
       for (const page of arch.pages) {
+        const pagePath = path.join(srcDir, 'pages', `${page.componentName}.tsx`);
+        if (await fs.stat(pagePath).catch(() => false)) {
+          onLog(4, `[hybrid-generator] Skipping AI Page: ${page.componentName} (already exists)`);
+          continue;
+        }
+
         onLog(4, `[hybrid-generator] Generating AI Page: ${page.componentName}...`);
         const hooksList = arch.hooks.map(h => h.name).join(', ');
         const componentsList = arch.components.filter(c => c.type !== 'page').map(c => c.name).join(', ');
 
         let hookContext = '';
         for (const [hookName, hookCode] of Object.entries(hookSignatures)) {
-          hookContext += `\n--- Hook: ${hookName} (import { ${hookName} } from '../hooks/${hookName}') ---\n${hookCode.substring(0, 1200)}\n`;
+          hookContext += `\n--- Hook: ${hookName} (import { ${hookName} } from '../hooks/${hookName}') ---\n${this.extractContract(hookCode)}\n`;
         }
         let compContext = '';
         for (const [compName, compCode] of Object.entries(componentSignatures)) {
-          compContext += `\n--- Component: ${compName} (import ${compName} from '../components/${compName}') ---\n${compCode.substring(0, 1200)}\n`;
+          compContext += `\n--- Component: ${compName} (import ${compName} from '../components/${compName}') ---\n${this.extractContract(compCode)}\n`;
         }
 
         const prompt = `You are an expert React developer building pages for a ${reqs.appName} application.
@@ -748,10 +1399,74 @@ Requirements:
 - Return the full React functional component as default export.
 - Do NOT import other pages, or components/hooks not in the lists above.
 - If using try/catch, DO NOT type the catch variable as \`any\` (e.g. use \`catch (e)\` or \`catch (error)\`, NOT \`catch (e: any)\`).
-- Return ONLY valid TypeScript/TSX source code. Do not include: explanations, markdown, reasoning, XML tags, think tags, or comments describing the solution.
+- BUSINESS LOGIC: You MUST fetch real data using the provided hooks and endpoints.
+- UI FEEDBACK: You MUST implement explicit loading spinners/states and explicit error states/banners.
+- MUTATIONS: You MUST wire form \`onSubmit\` handlers to perform client-side validation, and invoke mutation hooks to refresh data or update the UI optimally after successful submissions.
+- TRACEABILITY: Verify that every feature listed in 'App Features' related to this page is implemented. If you cannot implement all required features, you MUST output the exact string <TRACEABILITY_FAILURE> instead of code.
+- Return ONLY valid TypeScript/TSX source code. Do NOT explain. Do NOT reason. Do NOT describe. Do NOT use markdown fences. Do NOT use conversational text.
+
+HOOK CONTRACT RULES
+If a generated custom hook exists for this feature:
+- You MUST import and use the hook.
+- DO NOT duplicate hook logic.
+- DO NOT write inline useEffect fetching logic.
+- DO NOT directly fetch data inside the component.
+Violations are forbidden.
+
+SERVICE CONTRACT RULES
+If a generated Service exists:
+- All API access MUST go through the Service.
+- Components MUST NOT call fetch().
+- Components MUST NOT call axios directly.
+- Components MUST consume Services through Hooks whenever available.
+Violations are forbidden.
+
+CONTEXT CONTRACT RULES
+If Context Providers are generated:
+- They MUST be mounted.
+- The root application tree MUST be wrapped.
+- Generated components MUST consume the generated Context.
+Do not create duplicate local state when Context exists.
+
+AUTHENTICATION AUTHORITY RULES
+- Authentication state MUST come from useAuth().
+- Components MUST NOT implement their own authentication contexts.
+- Components MUST NOT store authentication state in local React state.
+- Role authorization MUST use ProtectedRoute.
+- Pages MUST NOT implement custom role routing or perform manual redirects.
+- Route protection MUST be delegated to ProtectedRoute.
+- Services MUST remain authentication-agnostic and MUST NOT import React hooks.
+
+ARCHITECTURE CONTRACT
+Generated architecture is authoritative.
+Generated Components must consume:
+- Services
+- Hooks
+- Contexts
+instead of recreating them.
+Do not generate parallel implementations.
+
+FORBIDDEN:
+- Do NOT use placeholder comments like "TODO", "FIXME", "Business Logic:", "Validation goes here", "Implement logic", "Placeholder", or "implement later".
+- Do NOT use pseudo-code.
+- Do NOT leave empty handlers or functions.
+
+REQUIRED:
+- Executable validation (e.g. Zod schemas or manual client-side if-statements)
+- Executable state mutations and API calls
+- Executable error handling (display error messages to the user)
+
+Return ONLY valid TypeScript or TSX source code.
+Do NOT explain your reasoning.
+Do NOT describe the solution.
+Do NOT provide planning text.
+Do NOT provide markdown.
+Do NOT provide code fences.
+Do NOT include comments outside the source file.
+Your entire response must be a compilable source file.
 `;
         try {
-          const pageTsx = await this.generateValidCode(provider, prompt, true, onLog);
+          const pageTsx = await this.generateValidCode(provider, prompt, true, page.componentName, frontendDir, onLog);
           await fs.writeFile(path.join(srcDir, 'pages', `${page.componentName}.tsx`), pageTsx);
         } catch (e: any) {
           onLog(4, `[FATAL] Generation Failed: Invalid AI output detected. (${e.message})`);
@@ -914,13 +1629,46 @@ Requirements:
 - If database is enabled, perform actual Prisma queries to persist and retrieve data for these endpoints. E.g. \`await prisma.user.findMany()\` or query the appropriate generated Prisma models.
 - Implement proper REST standards (GET to query, POST to create, PUT to update, DELETE to delete).
 - Do not include conversational text or markdown code blocks inside the output other than the raw typescript code.
+- BUSINESS LOGIC: You MUST validate required fields, numeric ranges, and enums. NEVER pass req.body directly into Prisma without manual validation and field extraction. You MUST use Zod or similar explicit validation.
+- ERROR HANDLING: You MUST return 400 Bad Request for invalid input and 404 Not Found when referenced entities do not exist. Return structured JSON error responses.
+- TRACEABILITY: Verify that every feature listed in 'App Features' related to the backend is implemented. If you cannot implement all required features, you MUST output the exact string <TRACEABILITY_FAILURE> instead of code.
+
+FORBIDDEN:
+- Do NOT use placeholder comments like "TODO", "FIXME", "Business Logic:", "Validation goes here", "Implement logic", "Placeholder", or "implement later".
+- Do NOT use pseudo-code.
+- Do NOT leave empty handlers or functions.
+
+REQUIRED:
+- Executable validation (e.g. Zod schemas)
+- Executable filtering (e.g. Prisma where clauses)
+- Executable mutations
+- Executable error handling
 `;
 
-      try {
-        const response = await this.generateTextWithRetry(provider, apiPrompt);
-        indexTs = this.extractCodeBlock(response);
-      } catch (e: any) {
-        Logger.warn(`[hybrid-generator] Failed to generate dynamic backend: ${e.message}. Falling back to stub.`);
+      let backendPassed = false;
+      let backendAttempts = 0;
+      let currentBackendPrompt = apiPrompt;
+      const { BusinessLogicAudit, RequirementCoverageAudit } = require('./business-logic-audit');
+
+      while (!backendPassed && backendAttempts < 3) {
+        backendAttempts++;
+        try {
+          const response = await this.generateTextWithRetry(provider, currentBackendPrompt);
+          indexTs = this.extractCodeBlock(response);
+          RequirementCoverageAudit.audit(response, reqs.features);
+          BusinessLogicAudit.auditBackend(indexTs, reqs.features);
+          const { PlaceholderBusinessLogicValidator } = require('../validators/placeholder-validator');
+          PlaceholderBusinessLogicValidator.audit(indexTs);
+          backendPassed = true;
+        } catch (e: any) {
+          Logger.warn(`[hybrid-generator] Backend generation attempt ${backendAttempts} failed: ${e.message}`);
+          if (backendAttempts >= 3) {
+            indexTs = '';
+            Logger.warn(`[hybrid-generator] Failed to generate dynamic backend after 3 attempts. Falling back to stub.`);
+          } else {
+            currentBackendPrompt = apiPrompt + `\n\nCRITICAL FIX REQUIRED: Your previous attempt failed with the following error:\n${e.message}\nPlease fix this error in your next response. Do NOT provide explanations, only return the complete fixed typescript source code.`;
+          }
+        }
       }
     }
 
@@ -1060,6 +1808,49 @@ ${prismaModels}
   }
 
   private static async generateTextWithRetry(provider: any, prompt: string): Promise<string> {
-    return RequestQueue.enqueue(() => provider.generateText(prompt));
+    try {
+      const response = (await RequestQueue.enqueue(() => provider.generateText(prompt))) as string;
+      if (response.includes('<TRACEABILITY_FAILURE>')) {
+        throw new Error('Generation failure: Missing requirement coverage detected by LLM during generation.');
+      }
+      return response;
+    } catch (e: any) {
+      if (e.message?.includes('API Key') || e.message?.includes('provider settings')) {
+        throw new Error(`LLM_CONFIGURATION_FAILURE: ${e.message}`);
+      }
+      throw e;
+    }
+  }
+  private static extractContract(code: string): string {
+    let contract = '';
+    const lines = code.split('\n');
+    let capturing = false;
+    let bracketCount = 0;
+    
+    for (const line of lines) {
+        if (line.trim().startsWith('import')) continue;
+        
+        if (line.includes('interface ') || line.includes('type ')) {
+            capturing = true;
+        }
+        
+        if (capturing) {
+            contract += line + '\n';
+            if (line.includes('{')) bracketCount += (line.match(/\{/g) || []).length;
+            if (line.includes('}')) bracketCount -= (line.match(/\}/g) || []).length;
+            if (bracketCount <= 0 && line.includes('}')) {
+                capturing = false;
+                bracketCount = 0;
+            }
+            continue;
+        }
+        
+        if (line.includes('export default function') || line.includes('export const') || line.includes('export function') || line.includes('export class')) {
+            const signature = line.split('{')[0].trim();
+            contract += signature + (signature.endsWith(';') ? '\n' : ';\n');
+        }
+    }
+    
+    return contract.trim() || code.substring(0, 300);
   }
 }

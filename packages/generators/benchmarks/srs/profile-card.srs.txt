@@ -1,0 +1,8 @@
+# User Profile Card SRS
+
+## Requirements
+- Render a card displaying user information.
+- Accept a `user` prop containing `name`, `email`, and `avatarUrl` (all strings).
+- Show an `img` tag with the avatar.
+- Display the user's name as an `h2` and email as a `p`.
+- Must be a functional component exported as default.

@@ -1,0 +1,80 @@
+{
+  "id": "b169436b-4a13-44b9-b242-9e84d2237983",
+  "status": "failed",
+  "createdAt": "2026-06-11T08:23:18.021Z",
+  "updatedAt": "2026-06-11T08:25:51.248Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [
+    "Project generation failed reliability and quality validation checks:\n- Functional QA score is too low: 38/100 (Required: 90)"
+  ],
+  "appName": "BasicCalcApp",
+  "appType": "frontend-app",
+  "frontend": [
+    "React",
+    "TypeScript"
+  ],
+  "backend": [],
+  "database": [],
+  "features": [
+    "Perform addition, subtraction, multiplication, and division",
+    "Responsive calculator UI with display, number buttons (0-9), operator buttons (+, -, *, /), equals, and clear button",
+    "Instant calculation result display on equals press"
+  ],
+  "workflows": [
+    "User inputs numbers and operators sequentially",
+    "Calculation execution on equals button press",
+    "Display updates dynamically with current input and results"
+  ],
+  "entities": [
+    {
+      "name": "Calculator",
+      "fields": [
+        "displayValue",
+        "currentValue",
+        "operator",
+        "previousValue"
+      ],
+      "validations": [
+        "Division by zero prevention",
+        "Valid operator selection"
+      ],
+      "relationships": []
+    }
+  ],
+  "routes": [],
+  "classifiedMode": "frontend-app",
+  "__targetDir": "C:\\website-generator-core\\website-generator-core\\apps\\runtime\\generated-projects\\b169436b-4a13-44b9-b242-9e84d2237983",
+  "frontendArchitecture": {
+    "components": [
+      {
+        "name": "CalculatorPage",
+        "type": "page",
+        "description": "Renders the calculator UI with display, number buttons (0-9), operator buttons (+, -, *, /), equals, and clear button"
+      },
+      {
+        "name": "CalculatorDisplay",
+        "type": "component",
+        "description": "Renders the display area showing current input and calculation results"
+      },
+      {
+        "name": "CalculatorButton",
+        "type": "component",
+        "description": "Renders individual calculator buttons with label, styling, and click handler"
+      }
+    ],
+    "services": [],
+    "hooks": [],
+    "pages": [
+      {
+        "route": "/",
+        "componentName": "CalculatorPage",
+        "description": "Main calculator page with responsive layout and instant calculation results"
+      }
+    ]
+  },
+  "generatorVersion": "2.0.0",
+  "generatorMode": "frontend-app",
+  "workspaceIntegrity": true,
+  "errorCategory": "BUILD FAILED"
+}

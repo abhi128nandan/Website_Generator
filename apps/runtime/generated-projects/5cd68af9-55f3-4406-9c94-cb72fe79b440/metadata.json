@@ -1,0 +1,12 @@
+{
+  "id": "5cd68af9-55f3-4406-9c94-cb72fe79b440",
+  "status": "failed",
+  "createdAt": "2026-06-11T06:44:08.256Z",
+  "updatedAt": "2026-06-11T06:44:08.364Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [
+    "Input Validation Failed: Document does not appear to be a Software Requirement Specification. Please describe an application, features, or system."
+  ],
+  "errorCategory": "GENERATION FAILED"
+}

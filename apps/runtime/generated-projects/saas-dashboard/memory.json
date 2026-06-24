@@ -1,0 +1,42 @@
+{
+  "projectId": "saas-dashboard",
+  "architecture": {
+    "appType": "saas-dashboard",
+    "pages": [
+      "Dashboard",
+      "CostAlerts",
+      "UserManagement",
+      "Settings"
+    ],
+    "entities": [
+      "User",
+      "Role",
+      "Alert",
+      "UsageMetric"
+    ],
+    "apis": [
+      "POST /api/auth/login",
+      "GET /api/dashboard/metrics",
+      "POST /api/alerts",
+      "GET /api/users",
+      "GET /api/resource-usage"
+    ],
+    "designTokens": {
+      "primaryColor": "#4f46e5",
+      "layout": "sidebar"
+    }
+  },
+  "features": [
+    "User authentication and role hierarchy: USER (Viewer), MANAGER (Editor), ADMIN (Billing Admin)",
+    "Protected analytical dashboard views with a role guard",
+    "Dynamic charts showing monthly cost, resource utilization, and API usage statistics",
+    "Cost limit alerts configured by Billing Admin (ADMIN role required)",
+    "Session persistence on page refresh and logout flow",
+    "React Query data caching with query keys and loading/error states in forms"
+  ],
+  "components": [],
+  "edits": [],
+  "userPreferences": {},
+  "createdAt": "2026-06-23T21:17:59.824Z",
+  "lastEditedAt": "2026-06-23T21:17:59.824Z"
+}

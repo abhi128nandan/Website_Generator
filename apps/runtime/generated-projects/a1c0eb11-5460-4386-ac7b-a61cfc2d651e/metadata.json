@@ -1,0 +1,278 @@
+{
+  "id": "a1c0eb11-5460-4386-ac7b-a61cfc2d651e",
+  "status": "failed",
+  "createdAt": "2026-06-15T08:44:12.573Z",
+  "updatedAt": "2026-06-15T09:03:05.736Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [
+    "Project generation failed reliability and quality validation checks:\n- [Dependency Error] C:/website-generator-core/website-generator-core/apps/runtime/generated-projects/a1c0eb11-5460-4386-ac7b-a61cfc2d651e/frontend/src/main.tsx: Cannot resolve local import './index.css'\n- Functional QA score is too low: 89/100 (Required: 90)"
+  ],
+  "appName": "TodoManager",
+  "appType": "task-management-crm",
+  "frontend": [
+    "React",
+    "Responsive UI"
+  ],
+  "backend": [
+    "Node.js",
+    "Express.js"
+  ],
+  "database": [
+    "MongoDB"
+  ],
+  "features": [
+    "Task creation with title/description",
+    "Task completion status tracking",
+    "Due date and priority settings",
+    "Task categorization",
+    "Cross-device compatibility",
+    "Filter tasks by category/priority logic not explicitly implemented",
+    "Mark task as complete workflow not visible in coverage",
+    "Delete completed tasks functionality missing",
+    "Input validation rules for task creation/editing not specified in evidence",
+    "Priority/category filtering parameters not shown in API route implementations",
+    "Filter tasks by category/priority (no evidence of filtering logic in backend or frontend)",
+    "Mark task as complete (no implementation in backend routes or frontend UI)",
+    "Delete completed tasks (missing bulk/delete-completed endpoint)",
+    "Input validation for task creation/editing (error states exist but no validation rules shown)",
+    "Filter tasks by category/priority (no backend route/filtering logic)",
+    "Delete completed tasks (no bulk deletion endpoint)",
+    "Mark task as complete (no specific status update logic)",
+    "Input validation rules (no explicit validation implementation details)",
+    "Task completion status update logic not visible in evidence",
+    "Input validation rules for task fields (e.g., required fields, priority ranges)",
+    "Bulk delete of completed tasks functionality",
+    "Category/priority filtering UI controls missing from frontend evidence"
+  ],
+  "workflows": [
+    "Add new task with validation",
+    "Edit task details",
+    "Mark task as complete",
+    "Filter tasks by category/priority",
+    "Delete completed tasks",
+    "Implement missing business logic and validation"
+  ],
+  "entities": [
+    {
+      "name": "Task",
+      "fields": [
+        "title",
+        "description",
+        "dueDate",
+        "priority",
+        "status",
+        "category"
+      ],
+      "validations": [
+        "title must be non-empty",
+        "dueDate must be valid date format",
+        "priority must be 1-5",
+        "status must be 'pending' or 'completed'"
+      ],
+      "relationships": [
+        "1:N with Category (optional)"
+      ]
+    }
+  ],
+  "routes": [
+    "GET /tasks",
+    "POST /tasks",
+    "PUT /tasks/:id",
+    "DELETE /tasks/:id",
+    "GET /categories"
+  ],
+  "classifiedMode": "crud-admin",
+  "architecture": {
+    "entities": [
+      {
+        "name": "Task",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "isRequired": true,
+            "isId": true,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@id",
+              "@default(uuid())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "completed",
+            "type": "Boolean",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@default(now())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@updatedAt"
+            ],
+            "isList": false
+          }
+        ]
+      }
+    ],
+    "endpoints": [
+      {
+        "path": "/api/tasks",
+        "method": "GET",
+        "entity": "Task",
+        "description": "Get all Tasks",
+        "businessLogic": "Fetch and paginate Tasks"
+      },
+      {
+        "path": "/api/tasks",
+        "method": "POST",
+        "entity": "Task",
+        "description": "Create new Task",
+        "businessLogic": "Validate and create new Task"
+      },
+      {
+        "path": "/api/tasks/:id",
+        "method": "GET",
+        "entity": "Task",
+        "description": "Get Task by ID",
+        "businessLogic": "Fetch single Task"
+      },
+      {
+        "path": "/api/tasks/:id",
+        "method": "PUT",
+        "entity": "Task",
+        "description": "Update Task",
+        "businessLogic": "Validate and update Task"
+      },
+      {
+        "path": "/api/tasks/:id",
+        "method": "DELETE",
+        "entity": "Task",
+        "description": "Delete Task",
+        "businessLogic": "Remove Task"
+      }
+    ],
+    "pages": [
+      {
+        "route": "/",
+        "componentName": "DashboardPage",
+        "description": "Main dashboard overview",
+        "features": [
+          "View overall system metrics"
+        ],
+        "isDashboard": true
+      },
+      {
+        "route": "/tasks",
+        "componentName": "TaskListPage",
+        "entity": "Task",
+        "description": "List and manage Tasks",
+        "features": [
+          "View Tasks",
+          "Delete Tasks",
+          "Navigate to Create/Edit"
+        ]
+      },
+      {
+        "route": "/tasks/new",
+        "componentName": "TaskCreatePage",
+        "entity": "Task",
+        "description": "Form to create a new Task",
+        "features": [
+          "Create new Task"
+        ]
+      },
+      {
+        "route": "/tasks/:id/edit",
+        "componentName": "TaskEditPage",
+        "entity": "Task",
+        "description": "Form to edit an existing Task",
+        "features": [
+          "Update Task"
+        ]
+      }
+    ],
+    "navigation": [
+      {
+        "label": "Dashboard",
+        "route": "/"
+      },
+      {
+        "label": "Tasks",
+        "route": "/tasks"
+      }
+    ]
+  },
+  "__canonicalContract": {
+    "appName": "Todo App",
+    "entities": [
+      {
+        "entity": "Task",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "isId": true,
+            "hasDefault": true
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "required": true
+          },
+          {
+            "name": "completed",
+            "type": "Boolean",
+            "hasDefault": true
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "hasDefault": true
+          }
+        ]
+      }
+    ]
+  },
+  "generatorVersion": "1.0.0",
+  "workspaceIntegrity": true,
+  "errorCategory": "BUILD FAILED"
+}

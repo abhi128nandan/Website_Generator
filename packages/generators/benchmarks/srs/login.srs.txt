@@ -1,0 +1,8 @@
+# Login Form SRS
+
+## Requirements
+- Render a form with `email` and `password` inputs.
+- Include a submit button.
+- Accept an `onSubmit` prop that receives the email and password values.
+- Must use React state to manage input values.
+- Must be a functional component exported as default.

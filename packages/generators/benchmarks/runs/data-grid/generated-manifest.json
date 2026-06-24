@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "HomePage"
+  ],
+  "components": [
+    "DataGrid",
+    "HomePage"
+  ],
+  "hooks": [],
+  "services": [],
+  "routes": [
+    "/"
+  ],
+  "prismaModels": []
+}

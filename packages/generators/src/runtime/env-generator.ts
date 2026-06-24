@@ -7,7 +7,7 @@ export class EnvGenerator {
   }
 
   static async generate(targetDir: string, appName: string): Promise<void> {
-    const dbSlug = 'paperclip_generated';
+    const dbSlug = 'websiteGenerator_generated';
     const dbUrl = `postgresql://postgres:postgres@localhost:5432/${dbSlug}`;
 
     // 1. Write .env.example AND .env to root, database, and backend

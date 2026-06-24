@@ -1,4 +1,4 @@
-import { Logger } from '@paperclip/shared';
+import { Logger } from '@website-generator/shared';
 import matter from 'gray-matter';
 import type { MarkdownReadResult } from '../types';
 

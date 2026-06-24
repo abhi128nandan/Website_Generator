@@ -1,4 +1,4 @@
-import { Logger as BaseLogger, ErrorCategory } from '@paperclip/shared';
+import { Logger as BaseLogger, ErrorCategory } from '@website-generator/shared';
 
 export interface StructuredLogEntry {
   timestamp: string;

@@ -1,0 +1,9 @@
+# Tooltip Component SRS
+
+## Requirements
+- Render a wrapper `div` that listens to `onMouseEnter` and `onMouseLeave`.
+- Accept `content` prop (string) to show inside the tooltip.
+- Accept `children` prop (React node) which triggers the tooltip.
+- Use state to track visibility.
+- Render the tooltip absolutely positioned if visible.
+- Must be a functional component exported as default.

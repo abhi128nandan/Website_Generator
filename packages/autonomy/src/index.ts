@@ -1,4 +1,4 @@
-// @paperclip/autonomy
+// @website-generator/autonomy
 // Autonomous Error Analysis & Repair Framework
 
 export * from './errors/error-categories';

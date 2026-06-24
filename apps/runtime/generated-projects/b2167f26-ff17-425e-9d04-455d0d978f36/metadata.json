@@ -1,0 +1,12 @@
+{
+  "id": "b2167f26-ff17-425e-9d04-455d0d978f36",
+  "status": "failed",
+  "createdAt": "2026-06-11T06:14:22.089Z",
+  "updatedAt": "2026-06-11T06:14:22.293Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [
+    "Input Validation Failed: Text is too short to be a valid Software Requirement Specification. Please provide a more detailed description."
+  ],
+  "errorCategory": "GENERATION FAILED"
+}

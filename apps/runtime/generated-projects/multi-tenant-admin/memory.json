@@ -1,0 +1,48 @@
+{
+  "projectId": "multi-tenant-admin",
+  "architecture": {
+    "appType": "saas-dashboard",
+    "pages": [
+      "Dashboard",
+      "Tenants",
+      "Users",
+      "Settings",
+      "Billing"
+    ],
+    "entities": [
+      "Tenant",
+      "User",
+      "Team",
+      "Invoice"
+    ],
+    "apis": [
+      "POST /api/tenants",
+      "GET /api/tenants",
+      "GET /api/tenants/:id/billing",
+      "POST /api/users",
+      "GET /api/users",
+      "POST /api/teams",
+      "GET /api/teams"
+    ],
+    "designTokens": {
+      "primaryColor": "#4f46e5",
+      "secondaryColor": "#0f172a",
+      "colorMode": "dark",
+      "layout": "sidebar"
+    }
+  },
+  "features": [
+    "Multi-tenant isolation based on authenticated tenant context",
+    "Roles: USER (Tenant User), MANAGER (Tenant Admin), ADMIN (System Super Admin)",
+    "System Super Admin view for tenant creation, listing, and billing metrics",
+    "Tenant Admin view for configuring local team members",
+    "Tenant User view for basic resource management",
+    "Protected router with role check and redirection",
+    "Page refresh auth persistence and loading spinners"
+  ],
+  "components": [],
+  "edits": [],
+  "userPreferences": {},
+  "createdAt": "2026-06-23T21:20:17.380Z",
+  "lastEditedAt": "2026-06-23T21:20:17.380Z"
+}

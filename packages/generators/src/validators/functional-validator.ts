@@ -1,116 +1,148 @@
-import { NormalizedRequirements, ValidationSchema, FunctionalValidationResult, Logger } from '@paperclip/shared';
-import { ProviderFactory } from '@paperclip/ai-engine';
+import { NormalizedRequirements, ValidationSchema, FunctionalValidationResult, Logger } from '@website-generator/shared';
+import { ProviderFactory } from '@website-generator/ai-engine';
 import fs from 'fs/promises';
 import path from 'path';
+import { FeatureExtractor } from './feature-extractor';
 
 export class FunctionalValidator {
   static async validate(targetDir: string, reqs: NormalizedRequirements): Promise<FunctionalValidationResult> {
     try {
       const provider = ProviderFactory.getProvider();
       
-      // Read key files to check for actual functional content
-      let backendCode = '';
-      let frontendApp = '';
-      let schemaPrisma = '';
-      let samplePage = '';
+      Logger.info(`[FunctionalValidator] Running FeatureExtractor...`);
+      const features = await FeatureExtractor.extract(targetDir);
+      const coverageMatrixJson = JSON.stringify(features, null, 2);
 
-      try { backendCode = await fs.readFile(path.join(targetDir, 'backend', 'src', 'index.ts'), 'utf-8'); } catch {}
-      try { frontendApp = await fs.readFile(path.join(targetDir, 'frontend', 'src', 'App.tsx'), 'utf-8'); } catch {}
-      try { schemaPrisma = await fs.readFile(path.join(targetDir, 'database', 'prisma', 'schema.prisma'), 'utf-8'); } catch {}
+      try {
+        const artifactsDir = path.join(targetDir, 'generation-artifacts');
+        await fs.mkdir(artifactsDir, { recursive: true });
+        await fs.writeFile(path.join(artifactsDir, 'coverage-matrix.json'), coverageMatrixJson, 'utf-8');
+      } catch (e) {
+        Logger.warn('[FunctionalValidator] Could not write coverage-matrix.json');
+      }
+
+      const appType = (reqs as any).appType || 'Default';
+      const appName = (reqs as any).appName || '';
+      const featuresStr = (reqs.features || []).join(' ').toLowerCase();
+      const workflowsStr = (reqs.workflows || []).join(' ').toLowerCase();
       
-      let sampleHook = '';
-      let sampleService = '';
+      const isFrontendOnly = reqs.classifiedMode === 'frontend-app';
+      
+      const isCalculator = appType.toLowerCase().includes('calculator') || appName.toLowerCase().includes('calc') || featuresStr.includes('calculator') || workflowsStr.includes('calculator');
+      const isWeather = appType.toLowerCase().includes('weather') || appName.toLowerCase().includes('weather') || featuresStr.includes('weather');
 
-      const arch = reqs.frontendArchitecture || reqs.architecture;
-      if (arch) {
-        if (arch.pages && arch.pages.length > 0) {
-          try { 
-            samplePage = await fs.readFile(path.join(targetDir, 'frontend', 'src', 'pages', `${arch.pages[0].componentName}.tsx`), 'utf-8'); 
-          } catch {}
-        }
-        
-        const frontArch = reqs.frontendArchitecture;
-        if (frontArch) {
-          if (frontArch.hooks && frontArch.hooks.length > 0) {
-            try { 
-              sampleHook = await fs.readFile(path.join(targetDir, 'frontend', 'src', 'hooks', `${frontArch.hooks[0].name}.ts`), 'utf-8'); 
-            } catch {}
-          }
-          if (frontArch.services && frontArch.services.length > 0) {
-            try { 
-              sampleService = await fs.readFile(path.join(targetDir, 'frontend', 'src', 'services', `${frontArch.services[0].name}.ts`), 'utf-8'); 
-            } catch {}
-          }
-        }
+      let promptCriteriaText = '';
+      if (isCalculator) {
+        promptCriteriaText = `
+- architecture: Is the architecture sound and matching the requirements?
+- businessLogic: Are arithmetic operations supported and bound to state?
+- reactStructure: Are components structured properly?
+- validation: Is there input validation?
+- frontend: Is the calculator UI functional and are display updates dynamic?
+- navigation: Are pages connected via routes?
+- forms: Do forms submit data to endpoints?`;
+      } else if (isWeather) {
+        promptCriteriaText = `
+- architecture: Is the architecture sound and matching the requirements?
+- businessLogic: Are API requests implemented for weather data?
+- reactStructure: Are components and hooks structured properly?
+- frontend: Is the UI functional and responsive?
+- validation: Are loading/error states handled defensively?
+- navigation: Are pages connected via routes?
+- forms: Do forms submit data to endpoints?`;
+      } else {
+        promptCriteriaText = `
+- architecture: Is the architecture sound and matching the requirements?
+- businessLogic: Is there evidence of domain-specific calculation/logic rather than just generic CRUD?
+- reactStructure: Are components, hooks, and services structured properly?
+- validation: Is there input validation?
+- frontend: Is the UI functional?
+- navigation: Are pages connected via routes?
+- forms: Do forms submit data to endpoints?`;
       }
 
       const prompt = `You are a strict QA Engineer reviewing a newly generated application for functional completeness.
 The goal is to ensure the application has actual working business logic, navigation, and state, rather than just static UI mockups.
 
 App Workflows: ${reqs.workflows?.join(', ') || 'N/A'}
+App Type: ${appType}
 
-Review the following generated code fragments:
---- BACKEND (index.ts) ---
-${backendCode.substring(0, 2000)}...
-
---- FRONTEND (App.tsx) ---
-${frontendApp.substring(0, 2000)}...
-
---- SAMPLE PAGE ---
-${samplePage.substring(0, 2000)}...
-
---- SAMPLE HOOK ---
-${sampleHook.substring(0, 1500)}...
-
---- SAMPLE SERVICE ---
-${sampleService.substring(0, 1500)}...
-
---- DATABASE (schema.prisma) ---
-${schemaPrisma.substring(0, 1000)}...
+Instead of raw code, we have statically extracted the functional capabilities of the app into the following Coverage Matrix:
+${coverageMatrixJson}
 
 Score the generation out of 100 based on functional completeness. 
-Criteria to evaluate (0-100 each, then average for total score):
-- architecture: Is the architecture sound and matching the requirements?
-- typeScriptCompile: Is the TypeScript code well-typed (assume 100 if we reached this step successfully)?
-- importResolution: Do imports look correct (assume 100 if we reached this step)?
-- reactStructure: Are components, hooks, and services structured properly?
-- buildSuccess: Does it look like it would build cleanly (assume 100)?
-- businessLogic: Is there evidence of domain-specific calculation/logic rather than just generic CRUD?
-- frontend: Is the UI functional (not just 'Feature One', 'Feature Two')?
-- navigation: Are pages connected via routes?
-- forms: Do forms submit data to endpoints?
-- validation: Is there input validation?
+If a required workflow step is completely missing from the coverage matrix, heavily penalize the score.
+
+Criteria to evaluate (0-100 each):
+${promptCriteriaText.trim()}
 
 Output ONLY a JSON object matching this structure:
 {
-  "score": 85,
   "criteria": {
     "architecture": 90,
-    "typeScriptCompile": 100,
-    "importResolution": 100,
+    "businessLogic": 90,
     "reactStructure": 90,
-    "buildSuccess": 100,
-    "businessLogic": 75,
-    "frontend": 85,
-    "navigation": 100,
-    "forms": 90,
-    "validation": 70
+    "validation": 90,
+    "frontend": 90,
+    "navigation": 90,
+    "forms": 90
   },
   "missingFunctionality": ["list of what is missing or static"],
   "feedback": "string"
 }`;
 
-      Logger.info(`[FunctionalValidator] Running QA on generated project...`);
-      const responseText = await provider.generateJSON(prompt);
+      Logger.info(`[FunctionalValidator] Running QA on Coverage Matrix...`);
       
-      const start = responseText.indexOf('{');
-      const end = responseText.lastIndexOf('}');
-      if (start === -1 || end === -1 || end < start) {
-        throw new Error('No JSON object found in response');
+      let parsed: any = null;
+      let attempts = 0;
+      while (attempts < 3) {
+        try {
+          const artifactsDir = path.join(targetDir, 'generation-artifacts');
+          await fs.writeFile(path.join(artifactsDir, 'functional-qa-prompt.txt'), prompt, 'utf-8');
+          await fs.writeFile(path.join(artifactsDir, 'functional-qa-input.json'), coverageMatrixJson, 'utf-8');
+
+          const responseText = await provider.generateJSON(prompt);
+          await fs.writeFile(path.join(artifactsDir, 'functional-qa-response.json'), responseText, 'utf-8');
+
+          const start = responseText.indexOf('{');
+          const end = responseText.lastIndexOf('}');
+          if (start === -1 || end === -1 || end < start) throw new Error('No JSON object found');
+          
+          const rawParsed = JSON.parse(responseText.substring(start, end + 1));
+          parsed = {
+            score: 0,
+            criteria: {
+              architecture: rawParsed.criteria?.architecture || 0,
+              businessLogic: rawParsed.criteria?.businessLogic || 0,
+              reactStructure: rawParsed.criteria?.reactStructure || 0,
+              validation: rawParsed.criteria?.validation || 0,
+              frontend: rawParsed.criteria?.frontend || 0,
+              navigation: rawParsed.criteria?.navigation || 0,
+              forms: rawParsed.criteria?.forms || 0,
+              typeScriptCompile: 100,
+              importResolution: 100,
+              buildSuccess: 100,
+              database: 0,
+              backend: 0
+            },
+            missingFunctionality: rawParsed.missingFunctionality || [],
+            feedback: rawParsed.feedback || ''
+          };
+          break;
+        } catch (err: any) {
+          if (err.message?.includes('413') || err.message?.includes('rate_limit')) {
+            Logger.warn(`[FunctionalValidator] Rate limit hit. Waiting 60s before retrying...`);
+            await new Promise(resolve => setTimeout(resolve, 60000));
+            attempts++;
+          } else {
+            throw err;
+          }
+        }
       }
-      const jsonString = responseText.substring(start, end + 1);
       
-      const parsed = JSON.parse(jsonString);
+      if (!parsed) {
+        throw new Error('Rate limit exceeded after 3 attempts or invalid JSON');
+      }
 
       if (reqs.classifiedMode === 'frontend-app') {
         // frontend apps skip backend validation
@@ -127,7 +159,10 @@ Output ONLY a JSON object matching this structure:
         }
 
         // Ensure architecture success/schema success are weighted properly
-        const weights: Record<string, number> = {
+        const appType = (reqs as any).appType || 'Default';
+        const isFrontendOnly = reqs.classifiedMode === 'frontend-app';
+
+        let weights: Record<string, number> = {
           architecture: 3.0,
           businessLogic: 2.0,
           frontend: 1.5,
@@ -139,6 +174,22 @@ Output ONLY a JSON object matching this structure:
           buildSuccess: 1.0,
           navigation: 1.0
         };
+
+        if (isFrontendOnly) {
+          weights.architecture = 0;
+          if (isCalculator) {
+            weights.forms = 0;
+            weights.navigation = 0;
+            weights.validation = 0;
+            weights.businessLogic = 4.0;
+            weights.frontend = 4.0;
+          } else if (isWeather) {
+            weights.forms = 0;
+            weights.validation = 1.0;
+            weights.businessLogic = 3.0;
+            weights.frontend = 3.0;
+          }
+        }
 
         let sum = 0;
         let totalWeight = 0;

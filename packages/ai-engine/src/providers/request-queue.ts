@@ -1,4 +1,4 @@
-import { Logger } from '@paperclip/shared';
+import { Logger } from '@website-generator/shared';
 
 type Task<T> = () => Promise<T>;
 
@@ -11,6 +11,31 @@ export class RequestQueue {
       this.queue.push({ task, resolve, reject });
       this.processQueue();
     });
+  }
+
+  private static parseRetryAfter(errMsg: string): number | null {
+    let match = errMsg.match(/try again in (?:(\d+)m)?([0-9.]+)s/i);
+    if (match) {
+      const mins = parseFloat(match[1] || '0');
+      const secs = parseFloat(match[2] || '0');
+      if (!isNaN(mins) || !isNaN(secs)) {
+        return (mins * 60 + secs) * 1000;
+      }
+    }
+    
+    match = errMsg.match(/try again in ([0-9.]+) seconds/i);
+    if (match) {
+       const secs = parseFloat(match[1]);
+       if (!isNaN(secs)) return secs * 1000;
+    }
+
+    match = errMsg.match(/try again in ([0-9.]+)ms/i);
+    if (match) {
+       const ms = parseFloat(match[1]);
+       if (!isNaN(ms)) return ms;
+    }
+    
+    return null;
   }
 
   private static async processQueue() {
@@ -47,9 +72,17 @@ export class RequestQueue {
           }
 
           if (isRateLimit) {
-            // Exponential backoff
-            const waitTime = delayMs * Math.pow(2, attempt);
-            Logger.warn(`[RequestQueue] Rate limited. Retrying in ${waitTime}ms (Attempt ${attempt}/${maxRetries})`);
+            const parsedWait = this.parseRetryAfter(errMsg);
+            const jitter = Math.random() * 1000; // 0-1s jitter
+            
+            let waitTime: number;
+            if (parsedWait !== null) {
+                waitTime = parsedWait + jitter;
+            } else {
+                waitTime = delayMs * Math.pow(1.5, attempt) + jitter;
+            }
+            
+            Logger.warn(`[RequestQueue] Rate limited. Retrying in ${Math.round(waitTime)}ms (Attempt ${attempt}/${maxRetries})`);
             await new Promise(r => setTimeout(r, waitTime));
           } else {
             // Not a rate limit error, reject immediately

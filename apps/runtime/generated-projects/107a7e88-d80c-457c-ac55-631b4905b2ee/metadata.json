@@ -1,0 +1,82 @@
+{
+  "id": "107a7e88-d80c-457c-ac55-631b4905b2ee",
+  "status": "generating",
+  "createdAt": "2026-06-24T05:52:30.899Z",
+  "updatedAt": "2026-06-24T05:54:01.608Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [],
+  "appName": "BasicCalcApp",
+  "appType": "frontend-app",
+  "frontend": [
+    "React",
+    "TypeScript"
+  ],
+  "backend": [],
+  "database": [],
+  "features": [
+    "Perform addition, subtraction, multiplication, and division",
+    "Clean responsive UI with calculator display at top",
+    "Number buttons 0-9 and operator buttons (+, -, *, /)",
+    "Equals button to show calculation result instantly",
+    "Clear button to reset input"
+  ],
+  "workflows": [
+    "User inputs numbers and operator, presses equals to see result",
+    "User presses clear to reset the calculator state"
+  ],
+  "entities": [
+    {
+      "name": "Calculator",
+      "fields": [
+        "displayValue",
+        "operand1",
+        "operand2",
+        "operator"
+      ],
+      "validations": [
+        "Division by zero prevention",
+        "Valid operator selection"
+      ],
+      "relationships": []
+    }
+  ],
+  "routes": [],
+  "classifiedMode": "frontend-app",
+  "blueprint": {
+    "appType": "frontend-app",
+    "pages": [
+      "Calculator"
+    ],
+    "entities": [
+      "Calculator"
+    ],
+    "apis": [],
+    "designTokens": {
+      "primaryColor": "#2C3E50",
+      "layout": "calculator"
+    }
+  },
+  "__targetDir": "C:\\website-generator-core\\website-generator-core\\apps\\runtime\\generated-projects\\107a7e88-d80c-457c-ac55-631b4905b2ee",
+  "frontendArchitecture": {
+    "components": [
+      {
+        "name": "CalculatorPage",
+        "type": "page",
+        "description": "Renders calculator display, number buttons (0-9), operator buttons (+, -, *, /), equals, and clear functionality"
+      }
+    ],
+    "services": [],
+    "hooks": [],
+    "pages": [
+      {
+        "route": "/",
+        "componentName": "CalculatorPage",
+        "description": "Main calculator interface with responsive layout for arithmetic operations"
+      }
+    ]
+  },
+  "generatorVersion": "2.0.0",
+  "generatorMode": "frontend-app",
+  "workspaceIntegrity": true
+}

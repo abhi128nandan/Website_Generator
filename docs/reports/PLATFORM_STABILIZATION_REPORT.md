@@ -1,7 +1,7 @@
 # Platform Stabilization Report
 
 ## Executive Summary
-The Paperclip Core generation platform has been successfully stabilized and brought to a complete, end-to-end working state. All requested UI enhancements, routing modifications, and backend capabilities (including deletion and folder opening) have been implemented and verified. 
+The Website Generator Core generation platform has been successfully stabilized and brought to a complete, end-to-end working state. All requested UI enhancements, routing modifications, and backend capabilities (including deletion and folder opening) have been implemented and verified. 
 
 ## Completed Fixes
 

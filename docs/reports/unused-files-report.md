@@ -22,7 +22,7 @@ The following files had zero active references in the codebase and were moved to
 - **`generate_weather.json`** ➔ `archive/unused-candidates/generate_weather.json`
   - *Reason:* A static JSON payload used as a prompt template for weather tracker generation testing. Not directly read or loaded by any application logic.
 
-### Package: `@paperclip/ai-engine`
+### Package: `@website-generator/ai-engine`
 - **`packages/ai-engine/test-groq.js`** ➔ `archive/unused-candidates/packages/ai-engine/test-groq.js`
   - *Reason:* A historical testing script for Groq API connectivity. Replaced by verified scratch diagnostics.
 - **`packages/ai-engine/test-pdf.js`** ➔ `archive/unused-candidates/packages/ai-engine/test-pdf.js`

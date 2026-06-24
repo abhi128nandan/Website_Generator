@@ -1,5 +1,5 @@
 import { GenerationRouter } from '../src/router/generation-router';
-import { NormalizedRequirements } from '@paperclip/shared';
+import { NormalizedRequirements } from '@website-generator/shared';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -75,7 +75,7 @@ async function runBenchmark(benchmark: any): Promise<boolean> {
   console.log(`🌟 Starting Benchmark: ${benchmark.appName}`);
   console.log(`======================================================\n`);
   
-  const targetDir = await fs.mkdtemp(path.join(os.tmpdir(), `paperclip-benchmark-`));
+  const targetDir = await fs.mkdtemp(path.join(os.tmpdir(), `website-generator-benchmark-`));
   console.log(`📂 Target Directory: ${targetDir}`);
   
   let backendProcess: any = null;

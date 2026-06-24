@@ -1,0 +1,14 @@
+{
+  "appType": "frontend-app",
+  "pages": [
+    "Calculator"
+  ],
+  "entities": [
+    "Calculator"
+  ],
+  "apis": [],
+  "designTokens": {
+    "primaryColor": "#000000",
+    "layout": "responsive"
+  }
+}

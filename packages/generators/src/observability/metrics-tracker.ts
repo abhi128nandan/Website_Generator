@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
-import { Logger } from '@paperclip/shared';
+import { Logger } from '@website-generator/shared';
 
 export interface GenerationMetrics {
   totalRuns: number;
@@ -17,13 +17,22 @@ export interface GenerationMetrics {
   functionalSuccessRate: number;
   repairRate: number;
   averageGenerationTimeMs: number;
+
+  // New Observability Metrics
+  classificationFailures: number;
+  syntaxGateFailures: number;
+  compileGateFailures: number;
+  parserFailures: number;
+  successfulGenerations: number;
+  commonTsErrors: Record<string, number>;
+  commonBuildErrors: Record<string, number>;
 }
 
 export class MetricsTracker {
   private static getMetricsPath(): string {
     const homeDir = os.homedir();
-    const paperclipDir = path.join(homeDir, '.paperclip');
-    return path.join(paperclipDir, 'metrics.json');
+    const websiteGeneratorDir = path.join(homeDir, '.websiteGenerator');
+    return path.join(websiteGeneratorDir, 'metrics.json');
   }
 
   static async loadMetrics(): Promise<GenerationMetrics> {
@@ -44,8 +53,61 @@ export class MetricsTracker {
         buildSuccessRate: 0,
         functionalSuccessRate: 0,
         repairRate: 0,
-        averageGenerationTimeMs: 0
+        averageGenerationTimeMs: 0,
+        classificationFailures: 0,
+        syntaxGateFailures: 0,
+        compileGateFailures: 0,
+        parserFailures: 0,
+        successfulGenerations: 0,
+        commonTsErrors: {},
+        commonBuildErrors: {}
       };
+    }
+  }
+
+  static async incrementMetric(metric: keyof GenerationMetrics, amount: number = 1): Promise<void> {
+    const metricsPath = this.getMetricsPath();
+    await fs.mkdir(path.dirname(metricsPath), { recursive: true });
+    const metrics = await this.loadMetrics();
+    
+    // Ensure all metrics are initialized to prevent NaN
+    if (metrics.classificationFailures === undefined) metrics.classificationFailures = 0;
+    if (metrics.syntaxGateFailures === undefined) metrics.syntaxGateFailures = 0;
+    if (metrics.compileGateFailures === undefined) metrics.compileGateFailures = 0;
+    if (metrics.parserFailures === undefined) metrics.parserFailures = 0;
+    if (metrics.successfulGenerations === undefined) metrics.successfulGenerations = 0;
+
+    (metrics as any)[metric] += amount;
+    
+    try {
+      await fs.writeFile(metricsPath, JSON.stringify(metrics, null, 2));
+    } catch (e: any) {
+      Logger.warn(`[MetricsTracker] Failed to increment metric ${metric}: ${e.message}`);
+    }
+  }
+
+  static async recordError(errorCategory: 'TS' | 'BUILD', errorMessage: string): Promise<void> {
+    const metricsPath = this.getMetricsPath();
+    const metrics = await this.loadMetrics();
+    
+    if (!metrics.commonTsErrors) metrics.commonTsErrors = {};
+    if (!metrics.commonBuildErrors) metrics.commonBuildErrors = {};
+
+    // Simplistic extraction of error code or key phrase
+    let key = errorMessage.substring(0, 50).replace(/(\r\n|\n|\r)/gm, " ");
+    
+    if (errorCategory === 'TS') {
+      const tsMatch = errorMessage.match(/TS\d+/);
+      if (tsMatch) key = tsMatch[0];
+      metrics.commonTsErrors[key] = (metrics.commonTsErrors[key] || 0) + 1;
+    } else {
+      metrics.commonBuildErrors[key] = (metrics.commonBuildErrors[key] || 0) + 1;
+    }
+
+    try {
+      await fs.writeFile(metricsPath, JSON.stringify(metrics, null, 2));
+    } catch (e: any) {
+      Logger.warn(`[MetricsTracker] Failed to record error metric: ${e.message}`);
     }
   }
 

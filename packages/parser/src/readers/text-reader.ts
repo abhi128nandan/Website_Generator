@@ -1,4 +1,4 @@
-import { Logger } from '@paperclip/shared';
+import { Logger } from '@website-generator/shared';
 
 /**
  * Reads plain text input with basic cleanup.

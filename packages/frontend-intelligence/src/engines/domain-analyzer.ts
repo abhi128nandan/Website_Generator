@@ -1,5 +1,5 @@
 import { DomainContext } from '../types';
-import { ProviderFactory } from '@paperclip/ai-engine';
+import { ProviderFactory } from '@website-generator/ai-engine';
 
 export class DomainAnalyzer {
   static async analyze(intent: string): Promise<DomainContext> {

@@ -8,7 +8,7 @@ export type NodeResult = Partial<GraphState> & { nextStage?: string, error?: Err
 export type GraphNode = (state: GraphState) => Promise<NodeResult>;
 
 export const plannerNode: GraphNode = async (state) => {
-  // Mock implementation calling into @paperclip/generators (to be fully integrated later)
+  // Mock implementation calling into @website-generator/generators (to be fully integrated later)
   return { stage: 'planner', nextStage: 'generator' };
 };
 

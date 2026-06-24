@@ -1,0 +1,29 @@
+{
+  "projectId": "34dc2939-4c28-4c0f-8639-a37895ce8843",
+  "architecture": {
+    "appType": "frontend-app",
+    "pages": [
+      "Calculator"
+    ],
+    "entities": [
+      "Calculator"
+    ],
+    "apis": [],
+    "designTokens": {
+      "primaryColor": "#2D3748",
+      "layout": "centered"
+    }
+  },
+  "features": [
+    "Perform addition, subtraction, multiplication, and division",
+    "Clean responsive UI with calculator display",
+    "Number buttons 0-9 and operator buttons (+, -, *, /)",
+    "Equals and Clear buttons with instant result display",
+    "State management using React hooks"
+  ],
+  "components": [],
+  "edits": [],
+  "userPreferences": {},
+  "createdAt": "2026-06-22T06:56:06.853Z",
+  "lastEditedAt": "2026-06-22T06:56:06.853Z"
+}

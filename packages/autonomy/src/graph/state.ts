@@ -1,4 +1,4 @@
-import { StructuredError, RepairAction, PipelineStage, Checkpoint } from '@paperclip/shared';
+import { StructuredError, RepairAction, PipelineStage, Checkpoint } from '@website-generator/shared';
 import { StructuredLogEntry } from '../logger/structured-logger';
 
 export interface RuntimeTopology {

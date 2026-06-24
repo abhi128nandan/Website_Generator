@@ -1,0 +1,23 @@
+{
+  "appType": "crud-admin",
+  "pages": [
+    "Dashboard",
+    "Tasks",
+    "Categories"
+  ],
+  "entities": [
+    "Task",
+    "Category"
+  ],
+  "apis": [
+    "GET /api/tasks",
+    "POST /api/tasks",
+    "PUT /api/tasks/:id",
+    "DELETE /api/tasks/:id",
+    "GET /api/categories"
+  ],
+  "designTokens": {
+    "primaryColor": "#1a73e8",
+    "layout": "sidebar"
+  }
+}

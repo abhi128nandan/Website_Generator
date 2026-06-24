@@ -6,7 +6,7 @@ export class ArtifactManager {
   private baseDir: string;
 
   constructor(private projectId: string, private projectRoot: string) {
-    this.baseDir = path.join(this.projectRoot, '.paperclip', 'artifacts');
+    this.baseDir = path.join(this.projectRoot, '.websiteGenerator', 'artifacts');
   }
 
   async init(): Promise<void> {

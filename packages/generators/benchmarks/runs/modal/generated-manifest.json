@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "ModalPage"
+  ],
+  "components": [
+    "ModalComponent",
+    "ModalPage"
+  ],
+  "hooks": [],
+  "services": [],
+  "routes": [
+    "/"
+  ],
+  "prismaModels": []
+}

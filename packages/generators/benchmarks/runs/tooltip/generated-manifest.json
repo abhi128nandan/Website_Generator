@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "TooltipPage"
+  ],
+  "components": [
+    "Tooltip",
+    "TooltipPage"
+  ],
+  "hooks": [],
+  "services": [],
+  "routes": [
+    "/"
+  ],
+  "prismaModels": []
+}

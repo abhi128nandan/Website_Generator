@@ -1,6 +1,7 @@
 import { BaseLLMProvider } from './base';
 import { GenerateOptions, ProviderHealth } from './types';
-import { Logger } from '@paperclip/shared';
+import { Logger } from '@website-generator/shared';
+import { GenerationTruncationError } from './errors';
 
 export class OpenRouterProvider extends BaseLLMProvider {
   private apiKey: string;
@@ -19,18 +20,28 @@ export class OpenRouterProvider extends BaseLLMProvider {
       throw new Error('Invalid API Key: Please check your provider settings.');
     }
 
-    const payload: any = {
-      model: options?.model || this.defaultModel,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: options?.temperature ?? (jsonMode ? 0.1 : 0.7),
-    };
+    const model = options?.model || this.defaultModel;
+    const isThinkingModel = /qwen|deepseek|qwq/i.test(model);
 
-    if (options?.maxTokens) {
-      payload.max_tokens = options.maxTokens;
+    const messages: any[] = [];
+    if (!jsonMode) {
+      messages.push({ role: 'system', content: 'You are a source code generator. Output ONLY valid source code. The first non-whitespace characters of your response must be an import or export statement. Do not include explanations, reasoning, markdown fences, or natural language.' });
     }
+    messages.push({ role: 'user', content: prompt });
+
+    const payload: any = {
+      model,
+      messages,
+      temperature: options?.temperature ?? (jsonMode ? 0.1 : 0.7),
+      max_tokens: options?.maxTokens || 4096,
+    };
 
     if (jsonMode) {
       payload.response_format = { type: 'json_object' };
+    }
+
+    if (isThinkingModel) {
+      payload.reasoning = { effort: 'none' };
     }
 
     const res = await fetch(this.baseUrl, {
@@ -49,7 +60,15 @@ export class OpenRouterProvider extends BaseLLMProvider {
       throw new Error(`Provider Error: HTTP ${res.status}`);
     }
 
-    return await res.json();
+    const data = await res.json();
+    const finishReason = data.choices?.[0]?.finish_reason || 'unknown';
+    if (['length', 'max_tokens', 'token_limit'].includes(finishReason)) {
+      Logger.warn(`[OpenRouterProvider] TRUNCATED_OUTPUT detected. Finish reason: ${finishReason}`);
+      const promptTokens = data.usage?.prompt_tokens || 0;
+      const completionTokens = data.usage?.completion_tokens || 0;
+      throw new GenerationTruncationError('Generation truncated by provider', 'openrouter', model, finishReason, promptTokens, completionTokens);
+    }
+    return data;
   }
 
   async generateText(prompt: string, options?: GenerateOptions): Promise<string> {

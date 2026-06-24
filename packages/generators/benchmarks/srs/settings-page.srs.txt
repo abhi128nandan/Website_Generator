@@ -1,0 +1,8 @@
+# Settings Page SRS
+
+## Requirements
+- Render a page layout for user settings.
+- Include a toggle switch for "Dark Mode" (requires internal state).
+- Include an input field for "Username".
+- Include a "Save Changes" button.
+- Must be a functional component exported as default.

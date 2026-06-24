@@ -1,0 +1,16 @@
+{
+  "files": [
+    "package.json",
+    "pnpm-workspace.yaml",
+    ".npmrc",
+    ".gitignore",
+    ".env.example",
+    "docker-compose.yml",
+    "README.md",
+    "metadata.json",
+    "generated-files.json",
+    "frontend/",
+    "backend/",
+    "database/"
+  ]
+}

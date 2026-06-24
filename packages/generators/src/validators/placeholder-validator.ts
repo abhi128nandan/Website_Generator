@@ -1,119 +1,82 @@
-import fs from 'fs/promises';
-import path from 'path';
-
-export interface PlaceholderValidationResult {
-  isValid: boolean;
-  errors: string[];
-}
-
-interface PlaceholderCategory {
-  name: string;
-  patterns: RegExp[];
-}
-
-const CATEGORIES: PlaceholderCategory[] = [
-  {
-    name: 'Generic dashboard content',
-    patterns: [
-      /dashboard overview/i,
-      /main screen/i,
-      /quick actions/i,
-      /recent activity/i,
-      /application summary/i,
-      /system overview/i,
-      /welcome to/i
-    ]
-  },
-  {
-    name: 'Coming soon placeholders',
-    patterns: [
-      /coming soon/i,
-      /under construction/i,
-      /not yet implemented/i,
-      /tbd/i
-    ]
-  },
-  {
-    name: 'Demo/sample content',
-    patterns: [
-      /sample data/i,
-      /demo widget/i,
-      /placeholder content/i,
-      /lorem ipsum/i,
-      /test user/i
-    ]
-  },
-  {
-    name: 'Feature placeholder cards',
-    patterns: [
-      /feature one/i,
-      /feature two/i,
-      /feature three/i,
-      /start building here/i,
-      /connect apis here/i
-    ]
-  }
-];
+import { Logger } from '@website-generator/shared';
 
 export class PlaceholderValidator {
-  /**
-   * Validates that the generated TS/TSX files do not contain placeholder UI text.
-   */
-  static async validate(targetDir: string): Promise<PlaceholderValidationResult> {
-    const srcDir = path.join(targetDir, 'frontend', 'src');
+  static audit(code: string): void {
+    PlaceholderBusinessLogicValidator.audit(code);
+  }
+
+  static async validate(targetDir: string): Promise<{isValid: boolean, errors: any[]}> {
+    const errors: any[] = [];
+    const fs = require('fs').promises;
+    const path = require('path');
     
-    // Find all ts, tsx, js, jsx files
-    const fileNames: string[] = [];
-    async function collectFiles(dir: string) {
+    const scanDir = async (dir: string) => {
       try {
         const entries = await fs.readdir(dir, { withFileTypes: true });
         for (const entry of entries) {
-          const res = path.resolve(dir, entry.name);
+          if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === '.git') continue;
+          const fullPath = path.join(dir, entry.name);
           if (entry.isDirectory()) {
-            await collectFiles(res);
-          } else if (res.endsWith('.ts') || res.endsWith('.tsx') || res.endsWith('.js') || res.endsWith('.jsx')) {
-            fileNames.push(res);
-          }
-        }
-      } catch (e) {
-        // Source dir might not exist if generation totally failed
-      }
-    }
-    
-    await collectFiles(srcDir);
-    
-    if (fileNames.length === 0) {
-      return { isValid: true, errors: [] }; // Nothing to check
-    }
-
-    const errors: string[] = [];
-
-    for (const fileName of fileNames) {
-      try {
-        const content = await fs.readFile(fileName, 'utf-8');
-        const lines = content.split('\n');
-        
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          for (const category of CATEGORIES) {
-            for (const pattern of category.patterns) {
-              const match = line.match(pattern);
-              if (match) {
-                const relName = path.relative(targetDir, fileName);
-                errors.push(`[PLACEHOLDER]\nCategory: ${category.name}\nFile: ${relName}:${i + 1}\nMatched Text: ${match[0]}`);
-              }
+            await scanDir(fullPath);
+          } else if (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx')) {
+            const code = await fs.readFile(fullPath, 'utf8');
+            try {
+              PlaceholderBusinessLogicValidator.audit(code);
+            } catch (e: any) {
+              errors.push({
+                file: fullPath,
+                message: e.message,
+                line: 1
+              });
             }
           }
         }
-      } catch (e: any) {
-        const relName = path.relative(targetDir, fileName);
-        errors.push(`${relName} - Failed to read file for placeholder validation: ${e.message}`);
+      } catch (e) {}
+    };
+    
+    await scanDir(targetDir);
+    return { isValid: errors.length === 0, errors };
+  }
+}
+
+export class PlaceholderBusinessLogicValidator {
+  private static readonly FORBIDDEN_PATTERNS = [
+    /TODO/i,
+    /FIXME/i,
+    /Business Logic:/i,
+    /Validation goes here/i,
+    /Implement logic/i,
+    /Placeholder/i,
+    /implement later/i,
+    /\/\/ Validate /i,
+    /\/\/ Apply filters/i,
+    /\/\/ Check permissions/i
+  ];
+
+  static audit(code: string): void {
+    if (!code || typeof code !== 'string') return;
+
+    for (const pattern of this.FORBIDDEN_PATTERNS) {
+      const match = code.match(pattern);
+      if (match) {
+        Logger.warn(`[PlaceholderValidator] Code contains forbidden placeholder pattern: ${pattern}`);
+        throw new Error(`CRITICAL VALIDATION FAILURE: Your code contains a forbidden placeholder ('${match[0]}'). You MUST write actual executable business logic (e.g., Zod schemas, React state error handling, Prisma where clauses). Do not leave pseudo-code or comments.`);
       }
     }
+    
+    // Check for conspicuously empty handlers that should contain logic
+    // We shouldn't fail on perfectly normal empty interfaces, so we have to be careful
+    const emptyHandlers = [
+      /onSubmit=\{?\s*(?:async\s*)?(?:\([^)]*\)|[^=]*)\s*=>\s*\{\s*\}?\}?/g,
+      /onClick=\{?\s*(?:async\s*)?(?:\([^)]*\)|[^=]*)\s*=>\s*\{\s*\}?\}?/g,
+      /app\.(?:post|put|delete|patch)\([^,]+,\s*(?:async\s*)?(?:req,\s*res)\s*=>\s*\{\s*\}/gi
+    ];
 
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
+    for (const pattern of emptyHandlers) {
+      if (pattern.test(code)) {
+        Logger.warn(`[PlaceholderValidator] Code contains empty executable handlers.`);
+        throw new Error(`CRITICAL VALIDATION FAILURE: Your code contains empty handlers (e.g., empty onSubmit, onClick, or Express route). You MUST provide actual executable functionality. Implement the mutation or state change.`);
+      }
+    }
   }
 }

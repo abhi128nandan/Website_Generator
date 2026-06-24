@@ -1,4 +1,4 @@
-import { NormalizedRequirements } from '@paperclip/shared';
+import { NormalizedRequirements } from '@website-generator/shared';
 import fs from 'fs/promises';
 import path from 'path';
 import { exec } from 'child_process';
@@ -73,7 +73,7 @@ generator client {
           let schemaPrismaContent = schemaPrisma + RelationNormalizer.render(normalizedEntities);
           
           // Temporarily hardcode for validation to bypass ANY dotenv issues
-          const validationSchema = schemaPrismaContent.replace(/url\s*=\s*env\("DATABASE_URL"\)/, 'url = "postgresql://postgres:postgres@localhost:5432/paperclip_generated"');
+          const validationSchema = schemaPrismaContent.replace(/url\s*=\s*env\("DATABASE_URL"\)/, 'url = "postgresql://postgres:postgres@localhost:5432/websiteGenerator_generated"');
           await fs.writeFile(path.join(prismaDir, 'schema.prisma'), validationSchema);
 
           // External Prisma validation directly in dbDir
@@ -125,7 +125,7 @@ generator client {
       }
 
       try {
-        const validationSchema = schemaPrisma.replace(/url\s*=\s*env\("DATABASE_URL"\)/, 'url = "postgresql://postgres:postgres@localhost:5432/paperclip_generated"');
+        const validationSchema = schemaPrisma.replace(/url\s*=\s*env\("DATABASE_URL"\)/, 'url = "postgresql://postgres:postgres@localhost:5432/websiteGenerator_generated"');
         await fs.writeFile(path.join(prismaDir, 'schema.prisma'), validationSchema);
         
         await execPromise('npx prisma validate', { cwd: dbDir });

@@ -1,5 +1,5 @@
 import { GenerationRouter } from '../src/router/generation-router';
-import { NormalizedRequirements } from '@paperclip/shared';
+import { NormalizedRequirements } from '@website-generator/shared';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -42,7 +42,7 @@ async function waitForPort(port: number, timeout = 30000): Promise<void> {
 async function runGoldenTodo() {
   console.log('🌟 Starting Golden Todo Benchmark...');
   
-  const targetDir = await fs.mkdtemp(path.join(os.tmpdir(), `paperclip-golden-todo-`));
+  const targetDir = await fs.mkdtemp(path.join(os.tmpdir(), `website-generator-golden-todo-`));
   console.log(`\n📂 Target Directory: ${targetDir}`);
   
   try {

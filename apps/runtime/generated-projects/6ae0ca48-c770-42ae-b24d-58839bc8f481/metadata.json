@@ -1,0 +1,12 @@
+{
+  "id": "6ae0ca48-c770-42ae-b24d-58839bc8f481",
+  "status": "failed",
+  "createdAt": "2026-06-16T12:06:20.669Z",
+  "updatedAt": "2026-06-16T12:09:54.448Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [
+    "Recoverable generation error"
+  ],
+  "errorCategory": "GENERATION FAILED"
+}

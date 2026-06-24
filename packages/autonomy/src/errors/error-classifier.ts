@@ -1,4 +1,4 @@
-import { ErrorCategory, StructuredError } from '@paperclip/shared';
+import { ErrorCategory, StructuredError } from '@website-generator/shared';
 import { randomUUID } from 'crypto';
 
 interface ErrorPattern {

@@ -1,4 +1,4 @@
-import { Logger } from '@paperclip/shared';
+import { Logger } from '@website-generator/shared';
 import type { ParsedSRS, SrsFormat, ParsedEntity, TechStack } from './types';
 import { detectFormat } from './detect-format';
 import { readPdf } from './readers/pdf-reader';

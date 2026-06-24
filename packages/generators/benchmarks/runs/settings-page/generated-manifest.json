@@ -1,0 +1,18 @@
+{
+  "pages": [
+    "SettingsPage"
+  ],
+  "components": [
+    "SettingsPage",
+    "SettingsForm",
+    "DarkModeToggle"
+  ],
+  "hooks": [
+    "useSettings"
+  ],
+  "services": [],
+  "routes": [
+    "/settings"
+  ],
+  "prismaModels": []
+}

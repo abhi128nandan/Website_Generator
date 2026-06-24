@@ -1,21 +1,26 @@
 {
-  "name": "@paperclip/generators",
+  "name": "@website-generator/generators",
   "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "lint": "eslint \"src/**/*.ts*\""
+    "lint": "eslint \"src/**/*.ts*\"",
+    "benchmark": "tsx scripts/run-benchmark.ts"
   },
   "dependencies": {
-    "@paperclip/ai-engine": "workspace:^",
-    "@paperclip/frontend-intelligence": "workspace:*",
-    "@paperclip/shared": "workspace:*"
+    "@website-generator/ai-engine": "workspace:^",
+    "@website-generator/frontend-intelligence": "workspace:*",
+    "@website-generator/shared": "workspace:*",
+    "lucide-react": "^0.408.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.9.1",
+    "dotenv": "^16.4.5",
+    "tsx": "^4.19.4",
     "typescript": "^5.9.3"
   }
 }

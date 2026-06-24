@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { NormalizedRequirements, Logger } from '@paperclip/shared';
+import { NormalizedRequirements, Logger } from '@website-generator/shared';
 
 export interface ObservabilityData {
   projectId: string;
@@ -108,6 +108,16 @@ export class GeneratorObservability {
       Logger.info(`[observability] Artifacts successfully saved to ${artifactsDir}`);
     } catch (e: any) {
       Logger.warn(`[observability] Failed to save generation artifacts: ${e.message}`);
+    }
+  }
+
+  static async writeArtifact(targetDir: string, filename: string, data: any): Promise<void> {
+    try {
+      const artifactsDir = path.join(targetDir, 'generation-artifacts');
+      await fs.mkdir(artifactsDir, { recursive: true });
+      await fs.writeFile(path.join(artifactsDir, filename), JSON.stringify(data, null, 2), 'utf-8');
+    } catch (e: any) {
+      Logger.warn(`[observability] Failed to write artifact ${filename}: ${e.message}`);
     }
   }
 

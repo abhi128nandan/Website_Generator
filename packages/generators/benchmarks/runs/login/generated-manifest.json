@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "LoginPage"
+  ],
+  "components": [
+    "LoginPage",
+    "LoginForm"
+  ],
+  "hooks": [],
+  "services": [],
+  "routes": [
+    "/"
+  ],
+  "prismaModels": []
+}

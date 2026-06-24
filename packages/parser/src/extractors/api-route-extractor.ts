@@ -1,4 +1,4 @@
-import { Logger } from '@paperclip/shared';
+import { Logger } from '@website-generator/shared';
 import type { ApiRoute } from '../types';
 
 /** Valid HTTP methods we look for. */

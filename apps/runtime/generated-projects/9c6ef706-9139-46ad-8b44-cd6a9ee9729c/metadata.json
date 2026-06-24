@@ -1,0 +1,12 @@
+{
+  "id": "9c6ef706-9139-46ad-8b44-cd6a9ee9729c",
+  "status": "failed",
+  "createdAt": "2026-06-10T11:34:50.158Z",
+  "updatedAt": "2026-06-10T11:34:50.376Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [
+    "Provider Error: 429 {\"error\":{\"message\":\"Rate limit reached for model `qwen/qwen3-32b` in organization `org_01kt8r2qjdfh0t1s5rff0mtc19` service tier `on_demand` on tokens per day (TPD): Limit 500000, Used 499617, Requested 884. Please try again in 1m26.5728s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}"
+  ],
+  "errorCategory": "RATE LIMITED"
+}

@@ -1,0 +1,51 @@
+{
+  "projectId": "crm-platform",
+  "architecture": {
+    "appType": "crm-platform",
+    "pages": [
+      "Dashboard",
+      "Contacts",
+      "Leads",
+      "Sales Pipelines",
+      "Authentication",
+      "Settings"
+    ],
+    "entities": [
+      "User",
+      "Role",
+      "Contact",
+      "Lead",
+      "SalesPipeline"
+    ],
+    "apis": [
+      "POST /api/auth/login",
+      "POST /api/auth/register",
+      "POST /api/auth/logout",
+      "GET /api/users",
+      "POST /api/users",
+      "GET /api/contacts",
+      "POST /api/contacts",
+      "GET /api/leads",
+      "POST /api/leads",
+      "GET /api/sales-pipelines"
+    ],
+    "designTokens": {
+      "primaryColor": "#4f46e5",
+      "secondaryColor": "#0f172a",
+      "layout": "sidebar"
+    }
+  },
+  "features": [
+    "Authentication with login, registration, and logout actions",
+    "Protected routes based on roles: USER, MANAGER, ADMIN",
+    "Manage contacts, leads, and sales pipelines",
+    "Role-based dashboard views where ADMIN can view all pipelines, MANAGER can assign leads, and USER can only view and update their assigned leads",
+    "Session persistence via localStorage and loading states during authentication check",
+    "API calls using React Query and services passing auth token in headers"
+  ],
+  "components": [],
+  "edits": [],
+  "userPreferences": {},
+  "createdAt": "2026-06-23T21:22:07.018Z",
+  "lastEditedAt": "2026-06-23T21:22:07.018Z"
+}

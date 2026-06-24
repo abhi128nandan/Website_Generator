@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "CounterPage"
+  ],
+  "components": [
+    "CounterComponent",
+    "CounterPage"
+  ],
+  "hooks": [],
+  "services": [],
+  "routes": [
+    "/"
+  ],
+  "prismaModels": []
+}

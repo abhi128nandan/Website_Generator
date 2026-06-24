@@ -1,11 +1,21 @@
-import { ProviderFactory } from '@paperclip/ai-engine';
-import { Logger } from '@paperclip/shared';
+import { ProviderFactory } from '@website-generator/ai-engine';
+import { Logger } from '@website-generator/shared';
 import fs from 'fs/promises';
 import path from 'path';
-import { ASTValidator } from '../validators/ast-validator';
-import { ReactStructureValidator } from '../validators/react-structure-validator';
+import { ASTRepairAgent } from './ast-repair-agent';
+import { TypeRepairAgent } from './type-repair-agent';
+import { BuildRepairAgent } from './build-repair-agent';
+import { FunctionalRepairAgent } from './functional-repair-agent';
+import { ValidationRegressionGuard } from '../validators/validation-regression-guard';
+
+interface FailureFingerprint {
+  file: string | null;
+  errorCategory: string;
+  errorHash: string;
+}
 
 export class RepairAgent {
+  private static lastFingerprints: Map<string, FailureFingerprint[]> = new Map();
   private static async logRepair(targetDir: string, message: string) {
     console.log(message);
     try {
@@ -14,54 +24,173 @@ export class RepairAgent {
       const logLine = `[${timestamp}] Step 5/6 [IN-PROGRESS]: ${message}\n`;
       await fs.appendFile(logPath, logLine, 'utf8');
     } catch (e) {
-      // ignore if path not writable or doesn't exist
+      // ignore
     }
   }
 
-  static async repair(targetDir: string, errors: any[]): Promise<boolean> {
-    Logger.info(`[RepairAgent] Attempting to repair generated files. Error count: ${errors.length}`);
-    const provider = ProviderFactory.getProvider();
+  private static normalizeFilePath(targetDir: string, filePath: string): string {
+    const normalizedTarget = targetDir.replace(/\\/g, '/');
+    let normalizedFile = filePath.replace(/\\/g, '/');
+    if (normalizedFile.startsWith(normalizedTarget)) {
+      normalizedFile = normalizedFile.substring(normalizedTarget.length);
+      if (normalizedFile.startsWith('/')) normalizedFile = normalizedFile.substring(1);
+    }
+    return normalizedFile;
+  }
+
+  private static extractFilePath(targetDir: string, errorString: string, rawError?: any): string | null {
+    if (rawError && typeof rawError === 'object' && rawError.type === 'BUILD_DIAGNOSTIC') {
+      return this.normalizeFilePath(targetDir, rawError.file);
+    }
+
+    const depMatch = errorString.match(/\[Dependency Error\]\s*(.*?):/i);
+    if (depMatch) return this.normalizeFilePath(targetDir, depMatch[1].trim());
     
-    // Parse errors to guess which files failed
-    // Example error format: "frontend/src/App.tsx:10:5 - error TS1234: message" or build error mentioning a file
-    const fileSet = new Set<string>();
+    const pageMatch = errorString.match(/Page\s+([^\s]+)\s+must/i);
+    if (pageMatch) return `frontend/src/pages/${pageMatch[1]}`;
+    
+    const missingMatch = errorString.match(/is missing:\s*(frontend[\\\/]src[\\\/][^\s]+\.tsx?)/i);
+    if (missingMatch) return this.normalizeFilePath(targetDir, missingMatch[1]);
+
+    const genericMatch = errorString.match(/((?:[A-Za-z]:[\\\/])?.*?(?:frontend|backend)[\\\/]src[\\\/][^\s:(]+\.tsx?)/i);
+    if (genericMatch) return this.normalizeFilePath(targetDir, genericMatch[1]);
+    
+    return null;
+  }
+
+  private static async createMissingFiles(targetDir: string, errors: any[]): Promise<number> {
+    let created = 0;
     for (const err of errors) {
+      const errStr = typeof err === 'object' ? JSON.stringify(err) : String(err);
+      
+      const cssMatch = errStr.match(/Cannot resolve local import '(\.\/.*?\.css)'/i);
+      if (cssMatch) {
+        const sourceMatch = this.extractFilePath(targetDir, errStr);
+        if (sourceMatch) {
+          const cssPath = path.join(targetDir, path.dirname(sourceMatch), cssMatch[1]);
+          try {
+             await fs.writeFile(cssPath, '/* Generated CSS */\n', 'utf-8');
+             created++;
+          } catch(e) {}
+        }
+      }
+      
+      const missingMatch = errStr.match(/Required (service|hook) file is missing:\s*(frontend[\\\/]src[\\\/][^\s]+\.ts)/i);
+      if (missingMatch) {
+         const type = missingMatch[1].toLowerCase();
+         const filePath = missingMatch[2];
+         const absPath = path.join(targetDir, filePath);
+         try {
+           const baseName = path.basename(filePath, '.ts');
+           let content = '';
+           if (type === 'service') {
+             content = `export const ${baseName} = {};\n`;
+           } else if (type === 'hook') {
+             content = `export function ${baseName}() { return {}; }\n`;
+           }
+           await fs.writeFile(absPath, content, 'utf-8');
+           created++;
+         } catch(e) {}
+      }
+    }
+    return created;
+  }
+
+  static async repair(targetDir: string, errors: any[]): Promise<boolean> {
+    Logger.info(`[RepairAgent] Dispatching repair. Error count: ${errors.length}`);
+    
+    // Categorize error type
+    let errorCategory: 'AST' | 'TYPE' | 'BUILD' | 'FUNCTIONAL' = 'BUILD';
+    const errorString = errors.map(e => typeof e === 'object' ? JSON.stringify(e) : String(e)).join(' ').toLowerCase();
+
+    if (errorString.includes('functional qa score') || errorString.includes('functional')) {
+      errorCategory = 'FUNCTIONAL';
+    } else if (errorString.includes('ts1') || errorString.includes('ts2') || errorString.includes('type')) {
+      errorCategory = 'TYPE';
+    } else if (errorString.includes('syntax') || errorString.includes('malformed') || errorString.includes('import') || errorString.includes('export')) {
+      errorCategory = 'AST';
+    } else if (errorString.includes('vite') || errorString.includes('pnpm') || errorString.includes('build error')) {
+      errorCategory = 'BUILD';
+    }
+
+    Logger.info(`[RepairAgent] Error categorized as: ${errorCategory}`);
+    await this.logRepair(targetDir, `[REPAIR] Triggering specialized agent: ${errorCategory}RepairAgent`);
+
+    // Parse errors to guess which files failed
+    const fileSet = new Set<string>();
+    const repairTraces: any[] = [];
+    const currentFingerprints: FailureFingerprint[] = [];
+
+    for (const err of errors) {
+      const errorStringLocal = typeof err === 'object' && err !== null ? JSON.stringify(err) : String(err);
+      let detectedFile: string | null = null;
+      
       if (typeof err === 'object' && err !== null && 'file' in err) {
-        fileSet.add(err.file);
+        if ('type' in err && err.type === 'BUILD_DIAGNOSTIC') {
+           detectedFile = this.normalizeFilePath(targetDir, err.file);
+        } else {
+           detectedFile = this.normalizeFilePath(targetDir, err.file);
+        }
       } else if (typeof err === 'string') {
-        const match = err.match(/(frontend[\\/]src[\\/][^:]+\.tsx?)/);
-        if (match) {
-          fileSet.add(match[1].replace(/\\/g, '/'));
-        }
+        detectedFile = this.extractFilePath(targetDir, errorStringLocal, err);
       }
+      
+      if (detectedFile) {
+        fileSet.add(detectedFile);
+      }
+
+      const fp: FailureFingerprint = {
+        file: detectedFile,
+        errorCategory: errorCategory,
+        errorHash: errorStringLocal
+      };
+      currentFingerprints.push(fp);
+
+      repairTraces.push({
+        error: errorStringLocal,
+        fileDetected: !!detectedFile,
+        file: detectedFile || '',
+        repairType: errorCategory,
+        result: 'pending'
+      });
     }
 
-    // If no specific files detected, try looking at vite/tsc build errors
-    if (fileSet.size === 0) {
-      for (const err of errors) {
-        if (typeof err === 'string') {
-          const match = err.match(/src[\\/]([^:]+\.tsx?)/);
-          if (match) {
-            fileSet.add('frontend/src/' + match[1].replace(/\\/g, '/'));
-          }
-        }
-      }
+    // --- Loop Detection (P0-E) ---
+    const last = this.lastFingerprints.get(targetDir) || [];
+    let isLoop = false;
+    
+    if (last.length > 0 && last.length === currentFingerprints.length) {
+      isLoop = currentFingerprints.every((fp, i) => 
+        fp.errorHash === last[i].errorHash && 
+        fp.file === last[i].file && 
+        fp.errorCategory === last[i].errorCategory
+      );
     }
 
-    if (fileSet.size === 0) {
+    if (isLoop) {
+      Logger.warn(`[RepairAgent] Loop Detection: Identical failure fingerprint detected from previous attempt. Escaping infinite repair loop.`);
+      repairTraces.forEach(t => t.result = 'skipped - loop detected');
+      await this.writeTraces(targetDir, repairTraces);
+      return false; // Escalate immediately
+    }
+
+    this.lastFingerprints.set(targetDir, currentFingerprints);
+    // --- End Loop Detection ---
+
+    const createdCount = await this.createMissingFiles(targetDir, errors);
+    if (createdCount > 0) {
+      Logger.info(`[RepairAgent] Created ${createdCount} missing files.`);
+    }
+
+    if (fileSet.size === 0 && errorCategory !== 'BUILD') {
       Logger.warn(`[RepairAgent] Could not identify specific files to repair from errors.`);
-      return false; // Can't repair if we don't know which file failed
+      repairTraces.forEach(t => t.result = 'skipped - no file');
+      await this.writeTraces(targetDir, repairTraces);
+      return false; 
     }
-
-    Logger.info(`[RepairAgent] Identified files to repair: ${Array.from(fileSet).join(', ')}`);
 
     // 1. Snapshot error count before repair
-    const astBefore = await ASTValidator.validate(targetDir);
-    const reactBefore = await ReactStructureValidator.validate(targetDir);
-    const X = astBefore.errors.length + reactBefore.errors.length;
-
-    await this.logRepair(targetDir, "[REPAIR]\nSnapshot Created");
-    await this.logRepair(targetDir, `[REPAIR]\nError Count Before: ${X}`);
+    const initialErrorCount = await ValidationRegressionGuard.getErrorCount(targetDir);
 
     // 2. Snapshot file contents before repair
     const snapshot = new Map<string, string>();
@@ -75,76 +204,55 @@ export class RepairAgent {
 
     let modifiedAny = false;
 
-    for (const relFilePath of fileSet) {
-      const absPath = path.join(targetDir, relFilePath);
-      const fileContent = snapshot.get(relFilePath);
-      if (fileContent === undefined) continue;
-
-      const prompt = `You are an expert React/TypeScript Developer and Bug Fixer.
-The following file has compilation or structural errors.
-
-File: ${relFilePath}
-
-Current Content:
-\`\`\`typescript
-${fileContent}
-\`\`\`
-
-Reported Errors:
-${errors.map((e: any) => typeof e === 'string' ? e : JSON.stringify(e)).join('\n').substring(0, 2000)}
-
-Requirements:
-- Fix the errors mentioned.
-- Ensure all imports resolve correctly.
-- Fix any duplicate declarations or syntax errors.
-- CRITICAL: Do NOT add new import statements for files that don't exist. If an error is about a missing module (TS2307 "Cannot find module"), REMOVE the broken import line and remove all references to the imported symbols. Inline the logic or use React state instead.
-- CRITICAL: Do NOT create, reference, or assume the existence of any file not already imported successfully. Only use imports that are already resolving without errors.
-- If a service, utility, or helper file is missing, do NOT import it. Implement the needed logic directly in this file.
-- Output ONLY the raw corrected TS/TSX code within a markdown code block. Do not include conversational text or explanations.
-`;
-
-      let response = '';
-      let success = false;
-      const retries = 5;
-      const delay = 10000;
-
-      for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-          response = await provider.generateText(prompt);
-          success = true;
-          break;
-        } catch (err: any) {
-          const errMsg = err.message || '';
-          const errStr = JSON.stringify(err) || '';
-          const isRateLimit = errMsg.includes('429') || errMsg.includes('rate_limit') || errMsg.includes('Rate limit') || errStr.includes('429');
-
-          if (isRateLimit && attempt < retries) {
-            const waitTime = delay * 2 * attempt;
-            Logger.info(`[RepairAgent] Rate limit hit for ${relFilePath}. Retrying in ${waitTime / 1000}s (attempt ${attempt}/${retries})...`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-          } else if (attempt === retries) {
-            throw err;
-          } else {
-            await new Promise(resolve => setTimeout(resolve, delay * attempt));
+    if (errorCategory === 'BUILD') {
+      const fixResult = await BuildRepairAgent.repair(targetDir, errors.map(e => typeof e === 'object' ? JSON.stringify(e) : String(e)).join('\n'));
+      if (fixResult) {
+        // Implement parsing of BuildRepairAgent format:
+        // FILE: path
+        // ```
+        // content
+        // ```
+        const regex = /FILE:\s*([^\n]+)\n```(?:[a-z]*)\n([\s\S]*?)```/g;
+        let match;
+        while ((match = regex.exec(fixResult)) !== null) {
+          const filePath = match[1].trim();
+          const correctedContent = match[2].trim();
+          const absPath = path.join(targetDir, filePath);
+          
+          try {
+            await fs.writeFile(absPath, correctedContent);
+            modifiedAny = true;
+          } catch(e: any) {
+            Logger.warn(`Failed to write build fix to ${absPath}: ${e.message}`);
           }
         }
       }
+    } else {
+      for (const relFilePath of fileSet) {
+        const absPath = path.join(targetDir, relFilePath);
+        const fileContent = snapshot.get(relFilePath);
+        if (fileContent === undefined) continue;
 
-      try {
-        const codeMatch = response.match(/```[a-z]*\n([\s\S]*?)```/);
-        const correctedCode = codeMatch ? codeMatch[1].trim() : response.trim();
-        await fs.writeFile(absPath, correctedCode);
-        Logger.info(`[RepairAgent] Successfully repaired ${relFilePath}`);
-        modifiedAny = true;
-      } catch (err: any) {
-        Logger.error(`[RepairAgent] Failed to repair ${relFilePath}: ${err.message}`);
-        // Restore snapshot if we failed mid-loop
-        if (modifiedAny) {
-          for (const [pathKey, origText] of snapshot.entries()) {
-            await fs.writeFile(path.join(targetDir, pathKey), origText, 'utf8');
-          }
+        let correctedCode: string | null = null;
+
+        if (errorCategory === 'AST') {
+          correctedCode = await ASTRepairAgent.repair(targetDir, relFilePath, fileContent, errors.map(e => typeof e === 'object' ? JSON.stringify(e) : String(e)));
+        } else if (errorCategory === 'TYPE') {
+          correctedCode = await TypeRepairAgent.repair(targetDir, relFilePath, fileContent, errors.map(e => typeof e === 'object' ? JSON.stringify(e) : String(e)));
+        } else if (errorCategory === 'FUNCTIONAL') {
+          correctedCode = await FunctionalRepairAgent.repair(targetDir, relFilePath, fileContent, errors.map(e => typeof e === 'object' ? JSON.stringify(e) : String(e)));
         }
-        return false;
+
+        if (correctedCode) {
+          const lowerCode = correctedCode.toLowerCase();
+          if (lowerCode.includes('welcome to') || lowerCode.includes('// todo') || lowerCode.includes('placeholder')) {
+             Logger.warn(`[RepairAgent] Rejected placeholder fix for ${relFilePath}`);
+             continue;
+          }
+          await fs.writeFile(absPath, correctedCode);
+          Logger.info(`[RepairAgent] Successfully applied fix to ${relFilePath}`);
+          modifiedAny = true;
+        }
       }
     }
 
@@ -152,22 +260,46 @@ Requirements:
       await this.logRepair(targetDir, "[REPAIR]\nRepair Applied");
 
       // 3. Post-repair validation
-      const astAfter = await ASTValidator.validate(targetDir);
-      const reactAfter = await ReactStructureValidator.validate(targetDir);
-      const Y = astAfter.errors.length + reactAfter.errors.length;
-
-      await this.logRepair(targetDir, `[REPAIR]\nError Count After: ${Y}`);
+      const finalErrorCount = await ValidationRegressionGuard.getErrorCount(targetDir);
+      await this.logRepair(targetDir, `[REPAIR]\nError Count After: ${finalErrorCount}`);
 
       // 4. Compare and rollback if worse
-      if (Y > X) {
-        await this.logRepair(targetDir, "[REPAIR]\nRollback Triggered");
-        for (const [pathKey, origText] of snapshot.entries()) {
-          await fs.writeFile(path.join(targetDir, pathKey), origText, 'utf8');
-        }
-        return false;
-      }
+      const reverted = await ValidationRegressionGuard.rollbackIfWorse(
+        targetDir,
+        snapshot,
+        initialErrorCount,
+        finalErrorCount,
+        async (msg) => this.logRepair(targetDir, msg)
+      );
+
+      repairTraces.forEach(t => t.result = reverted ? 'rolled-back' : 'success');
+      await this.writeTraces(targetDir, repairTraces);
+
+      if (reverted) return false;
+      return finalErrorCount === 0 || finalErrorCount < initialErrorCount;
     }
 
-    return true;
+    repairTraces.forEach(t => t.result = 'failed - no modification');
+    await this.writeTraces(targetDir, repairTraces);
+    return false;
+  }
+
+  private static async writeTraces(targetDir: string, traces: any[]) {
+    try {
+      const artifactsDir = path.join(targetDir, 'generation-artifacts');
+      await fs.mkdir(artifactsDir, { recursive: true });
+      const tracePath = path.join(artifactsDir, 'repair-trace.json');
+      
+      let existing: any[] = [];
+      try {
+        const content = await fs.readFile(tracePath, 'utf-8');
+        existing = JSON.parse(content);
+      } catch (e) {}
+      
+      existing.push(...traces);
+      await fs.writeFile(tracePath, JSON.stringify(existing, null, 2), 'utf-8');
+    } catch (e) {
+      Logger.warn(`[RepairAgent] Could not write repair traces: ${(e as any).message}`);
+    }
   }
 }

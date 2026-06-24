@@ -1,0 +1,282 @@
+{
+  "id": "2abdacb0-2357-4114-9756-a21768241b54",
+  "status": "failed",
+  "createdAt": "2026-06-10T19:49:28.746Z",
+  "updatedAt": "2026-06-10T19:51:47.149Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [
+    "Project generation failed reliability and quality validation checks:\n- Functional QA score is too low: 83/100 (Required: 90)"
+  ],
+  "appName": "TodoManager",
+  "appType": "crud-admin",
+  "frontend": [
+    "React",
+    "Responsive Design"
+  ],
+  "backend": [
+    "Node.js",
+    "Express.js"
+  ],
+  "database": [
+    "PostgreSQL"
+  ],
+  "features": [
+    "Task creation with title, description, due date, priority",
+    "Task status tracking (completed/pending)",
+    "Task categorization",
+    "Edit and delete tasks",
+    "Responsive UI for multiple devices",
+    "Missing PUT/PATCH endpoint for task updates",
+    "Missing DELETE endpoint for task deletion",
+    "No form implementation for task editing/deletion",
+    "No validation for required task fields (title, category)",
+    "Incomplete task status toggle logic (mark as complete)",
+    "Dashboard metrics not connected to actual task data",
+    "Navigation buttons without backend integration"
+  ],
+  "workflows": [
+    "User creates a new task with category",
+    "User marks task as complete",
+    "User edits task details",
+    "User deletes a task",
+    "Implement missing business logic and validation"
+  ],
+  "entities": [
+    {
+      "name": "Task",
+      "fields": [
+        "title",
+        "description",
+        "dueDate",
+        "priority",
+        "status",
+        "categoryId"
+      ],
+      "validations": [
+        "title is required",
+        "dueDate must be a valid date",
+        "priority must be High/Medium/Low",
+        "status must be boolean"
+      ],
+      "relationships": [
+        "1:N with Category"
+      ]
+    },
+    {
+      "name": "Category",
+      "fields": [
+        "name",
+        "description"
+      ],
+      "validations": [
+        "name is required"
+      ],
+      "relationships": [
+        "N:1 with Task"
+      ]
+    }
+  ],
+  "routes": [
+    "GET /tasks",
+    "POST /tasks",
+    "GET /tasks/:id",
+    "PUT /tasks/:id",
+    "DELETE /tasks/:id",
+    "GET /categories",
+    "POST /categories"
+  ],
+  "classifiedMode": "crud-admin",
+  "architecture": {
+    "entities": [
+      {
+        "name": "Task",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "isRequired": true,
+            "isId": true,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@id",
+              "@default(uuid())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "completed",
+            "type": "Boolean",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@default(now())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@updatedAt"
+            ],
+            "isList": false
+          }
+        ]
+      }
+    ],
+    "endpoints": [
+      {
+        "path": "/api/tasks",
+        "method": "GET",
+        "entity": "Task",
+        "description": "Get all Tasks",
+        "businessLogic": "Fetch and paginate Tasks"
+      },
+      {
+        "path": "/api/tasks",
+        "method": "POST",
+        "entity": "Task",
+        "description": "Create new Task",
+        "businessLogic": "Validate and create new Task"
+      },
+      {
+        "path": "/api/tasks/:id",
+        "method": "GET",
+        "entity": "Task",
+        "description": "Get Task by ID",
+        "businessLogic": "Fetch single Task"
+      },
+      {
+        "path": "/api/tasks/:id",
+        "method": "PUT",
+        "entity": "Task",
+        "description": "Update Task",
+        "businessLogic": "Validate and update Task"
+      },
+      {
+        "path": "/api/tasks/:id",
+        "method": "DELETE",
+        "entity": "Task",
+        "description": "Delete Task",
+        "businessLogic": "Remove Task"
+      }
+    ],
+    "pages": [
+      {
+        "route": "/",
+        "componentName": "DashboardPage",
+        "description": "Main dashboard overview",
+        "features": [
+          "View overall system metrics"
+        ],
+        "isDashboard": true
+      },
+      {
+        "route": "/tasks",
+        "componentName": "TaskListPage",
+        "entity": "Task",
+        "description": "List and manage Tasks",
+        "features": [
+          "View Tasks",
+          "Delete Tasks",
+          "Navigate to Create/Edit"
+        ]
+      },
+      {
+        "route": "/tasks/new",
+        "componentName": "TaskCreatePage",
+        "entity": "Task",
+        "description": "Form to create a new Task",
+        "features": [
+          "Create new Task"
+        ]
+      },
+      {
+        "route": "/tasks/:id/edit",
+        "componentName": "TaskEditPage",
+        "entity": "Task",
+        "description": "Form to edit an existing Task",
+        "features": [
+          "Update Task"
+        ]
+      }
+    ],
+    "navigation": [
+      {
+        "label": "Dashboard",
+        "route": "/"
+      },
+      {
+        "label": "Tasks",
+        "route": "/tasks"
+      }
+    ]
+  },
+  "__canonicalContract": {
+    "appName": "Todo App",
+    "entities": [
+      {
+        "entity": "Task",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "isId": true,
+            "hasDefault": true
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "required": true
+          },
+          {
+            "name": "completed",
+            "type": "Boolean",
+            "hasDefault": true
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "hasDefault": true
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "hasDefault": true
+          }
+        ]
+      }
+    ]
+  },
+  "generatorVersion": "1.0.0",
+  "workspaceIntegrity": true,
+  "errorCategory": "BUILD FAILED"
+}

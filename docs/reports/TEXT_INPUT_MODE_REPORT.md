@@ -1,7 +1,7 @@
 # Direct Text Generation Mode Report
 
 ## Overview
-The Paperclip Core platform now fully supports **Direct Text Generation Mode**, providing developers a blazing-fast testing and prototyping experience without requiring them to build or upload PDF/Markdown files first.
+The Website Generator Core platform now fully supports **Direct Text Generation Mode**, providing developers a blazing-fast testing and prototyping experience without requiring them to build or upload PDF/Markdown files first.
 
 ## Architecture Changes
 ### Unified Generation Pipeline (`apps/server/src/routes/generate.ts`)

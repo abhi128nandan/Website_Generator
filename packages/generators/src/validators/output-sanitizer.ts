@@ -4,30 +4,87 @@ export class OutputSanitizer {
    * leaving only the raw source code.
    */
   static sanitize(rawContent: string): string {
-    let sanitized = rawContent;
+    return OutputSanitizer.sanitizeWithDiagnostics(rawContent).code;
+  }
 
-    // 1. Remove <think>...</think> and <reasoning>...</reasoning>
-    // The dotAll (/s) flag is necessary because the blocks can span multiple lines.
-    sanitized = sanitized.replace(/<(?:think|reasoning|analysis)>[\s\S]*?<\/(?:think|reasoning|analysis)>/gi, '');
+  static sanitizeWithDiagnostics(rawContent: string): { code: string, diagnostics: any } {
+    let sanitized = rawContent.trim();
+    let thinkBlockCount = 0;
+    let artifactCount = 0;
 
-    // 2. Remove markdown code fences ```tsx ... ``` or ``` ... ```
-    // Match starting fence with optional language identifier, capture content, and match ending fence.
-    const markdownRegex = /```[a-z]*\n([\s\S]*?)\n```/g;
+    // Remove <think> blocks ONLY at the beginning of the raw output.
+    // This safely strips LLM reasoning without corrupting valid JSX inside the code.
+    const startThinkRegex = /^<(?:think|thinking|reasoning|analysis)>[\s\S]*?<\/(?:think|thinking|reasoning|analysis)>/i;
+    while (startThinkRegex.test(sanitized)) {
+      sanitized = sanitized.replace(startThinkRegex, '').trim();
+      thinkBlockCount++;
+    }
+
+    // Check for markdown code blocks
+    const markdownRegex = /```(?:[a-zA-Z0-9-]*)\n([\s\S]*?)```/ig;
     let match;
     let foundCodeBlock = false;
     let extractedCode = '';
     
-    // If the entire response is wrapped in a code block or contains multiple, we extract just the code
     while ((match = markdownRegex.exec(sanitized)) !== null) {
       foundCodeBlock = true;
-      extractedCode += match[1] + '\n';
+      extractedCode = match[1].trim();
+      artifactCount++;
     }
 
-    if (foundCodeBlock && extractedCode.trim().length > 0) {
+    // REPAIR 1: Prevent multi-file concatenation
+    if (artifactCount > 1) {
+      return {
+        code: 'MULTI_FILE_OUTPUT_DETECTED',
+        diagnostics: {
+          rawLength: rawContent.length,
+          sanitizedLength: 0,
+          removedThinkBlocks: thinkBlockCount,
+          removedArtifacts: artifactCount,
+          remainingReasoningIndicators: [],
+          hasUnclosedReasoning: false,
+          success: false,
+          error: 'MULTI_FILE_OUTPUT_DETECTED'
+        }
+      };
+    }
+
+    if (foundCodeBlock) {
       sanitized = extractedCode;
+    } else {
+      // REPAIR 3: Support Raw source code responses without bias
+      const prefixes = [
+        /^here is.*?\n/mi,
+        /^sure.*?\n/mi,
+        /^this component.*?\n/mi,
+        /^typescript\n/mi,
+        /^tsx\n/mi
+      ];
+      
+      let strippedPrefixes = false;
+      do {
+        strippedPrefixes = false;
+        sanitized = sanitized.trimStart();
+        for (const prefix of prefixes) {
+          if (prefix.test(sanitized)) {
+            sanitized = sanitized.replace(prefix, '');
+            strippedPrefixes = true;
+          }
+        }
+      } while (strippedPrefixes);
     }
 
-    // 3. Strip leading and trailing whitespace
-    return sanitized.trim();
+    return {
+      code: sanitized,
+      diagnostics: {
+        rawLength: rawContent.length,
+        sanitizedLength: sanitized.length,
+        removedThinkBlocks: thinkBlockCount,
+        removedArtifacts: artifactCount,
+        remainingReasoningIndicators: [],
+        hasUnclosedReasoning: false,
+        success: true
+      }
+    };
   }
 }

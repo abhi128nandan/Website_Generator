@@ -1,7 +1,7 @@
 # Generation Pipeline Report
 
 ## Overview
-The **AI Application Generation Pipeline** has been successfully implemented, bringing the first complete AI-native workflow to `paperclip-core`. The pipeline achieves the primary objective of taking an uploaded Software Requirement Specification (SRS) in PDF, TXT, or Markdown formats, analyzing it using an AI model (Ollama `qwen2.5-coder:7b`), and producing a fully scaffolded project containing Frontend, Backend, and Database configurations. 
+The **AI Application Generation Pipeline** has been successfully implemented, bringing the first complete AI-native workflow to `website-generator-core`. The pipeline achieves the primary objective of taking an uploaded Software Requirement Specification (SRS) in PDF, TXT, or Markdown formats, analyzing it using an AI model (Ollama `qwen2.5-coder:7b`), and producing a fully scaffolded project containing Frontend, Backend, and Database configurations. 
 
 ## Stability Highlights
 The pipeline has been engineered according to strict architectural guidelines avoiding over-engineered abstractions. Focus was placed on deterministic stability:

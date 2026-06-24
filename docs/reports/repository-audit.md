@@ -1,10 +1,10 @@
 # Repository Audit Report
 
-This report presents a comprehensive audit of the Paperclip Core monorepo repository before cleanup.
+This report presents a comprehensive audit of the Website Generator Core monorepo repository before cleanup.
 
 ## 1. Current Folder Structure
 ```
-c:/paperclip-core/paperclip-core
+c:/website-generator-core/website-generator-core
 ├── apps/
 │   ├── server/          # Express backend application
 │   └── web/             # React + Vite frontend application
@@ -56,7 +56,7 @@ The following files are unreferenced mock payloads or testing scripts that are s
 
 ### REQUIRES_VERIFICATION
 - `apps/server/src/runtime/__tests__/run_audit.js`: Not imported anywhere, but is a test script that triggers E2E project audit. Should be updated with new relative paths and preserved inside its test folder.
-- `generated-apps/projects.json` & `C:\Users\abhi9\PaperclipProjects\projects.json`: Dynamic projects databases. Need to be merged and placed inside `runtime/projects.json` with absolute paths updated dynamically.
+- `generated-apps/projects.json` & `C:\Users\abhi9\Website GeneratorProjects\projects.json`: Dynamic projects databases. Need to be merged and placed inside `runtime/projects.json` with absolute paths updated dynamically.
 
 ### DO_NOT_TOUCH
 All business logic files inside `apps/` and `packages/` should be left completely intact, except for target path configurations in `apps/server/src/registry.ts`, `apps/server/src/routes/generate.ts`, and `apps/server/src/processManager.ts` (which need port updates or project generation path updates).

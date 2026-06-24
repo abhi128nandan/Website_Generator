@@ -1,0 +1,8 @@
+# Counter Component SRS
+
+## Requirements
+- Render a component with a numeric counter.
+- Must have an "Increment" button.
+- Must have a "Decrement" button.
+- Must use `useState` to store the counter value.
+- Must be a functional component exported as default.

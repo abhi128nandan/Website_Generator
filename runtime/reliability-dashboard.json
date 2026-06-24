@@ -1,110 +1,14 @@
 [
   {
-    "id": "3f803e50-f6c1-4ae9-aae9-5b3971d4ebf3",
-    "name": "todo_app_srs",
-    "mode": "unknown",
-    "status": "generating",
-    "createdAt": "2026-06-04T06:34:55.344Z",
-    "buildSuccess": false,
-    "runtimeSuccess": false,
-    "apiSuccess": false,
-    "persistenceSuccess": false,
-    "score": 0
-  },
-  {
-    "id": "96a8c103-0b60-439a-ac51-70c81b9af51b",
-    "name": "TodoTaskManager",
-    "mode": "frontend-app",
-    "status": "generating",
-    "createdAt": "2026-06-04T06:36:22.389Z",
-    "buildSuccess": false,
-    "runtimeSuccess": false,
-    "apiSuccess": false,
-    "persistenceSuccess": false,
-    "score": 0
-  },
-  {
-    "id": "659ac8a7-5b68-460e-9149-b0e8eed9de0a",
-    "name": "TodoManager",
-    "mode": "hybrid-fullstack",
-    "status": "generating",
-    "createdAt": "2026-06-04T06:39:11.939Z",
-    "buildSuccess": false,
-    "runtimeSuccess": false,
-    "apiSuccess": false,
-    "persistenceSuccess": false,
-    "score": 0
-  },
-  {
-    "id": "613cb59e-ca73-4cab-9af7-9d819ac8c3ab",
-    "name": "UnnamedApp",
-    "mode": "hybrid-fullstack",
-    "status": "generating",
-    "createdAt": "2026-06-04T06:54:01.683Z",
-    "buildSuccess": false,
-    "runtimeSuccess": false,
-    "apiSuccess": false,
-    "persistenceSuccess": false,
-    "score": 0
-  },
-  {
-    "id": "64f310a4-b778-4320-9bbd-1909deccd81a",
-    "name": "SimpleCalculatorApp",
-    "mode": "frontend-app",
-    "status": "generating",
-    "createdAt": "2026-06-04T07:14:29.913Z",
-    "buildSuccess": false,
-    "runtimeSuccess": false,
-    "apiSuccess": false,
-    "persistenceSuccess": false,
-    "score": 0
-  },
-  {
-    "id": "99ddcf19-57ad-4646-9bdd-9cd9e921b322",
-    "name": "BasicCalculatorApp",
-    "mode": "frontend-app",
-    "status": "generating",
-    "createdAt": "2026-06-04T08:01:30.281Z",
-    "buildSuccess": false,
-    "runtimeSuccess": false,
-    "apiSuccess": false,
-    "persistenceSuccess": false,
-    "score": 0
-  },
-  {
-    "id": "8145091c-68d0-4569-9f3c-2857e033feb8",
+    "id": "107a7e88-d80c-457c-ac55-631b4905b2ee",
     "name": "BasicCalcApp",
     "mode": "frontend-app",
-    "status": "generating",
-    "createdAt": "2026-06-04T08:12:36.545Z",
-    "buildSuccess": false,
-    "runtimeSuccess": false,
-    "apiSuccess": false,
-    "persistenceSuccess": false,
-    "score": 0
-  },
-  {
-    "id": "256002f2-2cd8-4500-8fdd-9f7de3442fd4",
-    "name": "BasicCalcApp",
-    "mode": "frontend-app",
-    "status": "error",
-    "createdAt": "2026-06-04T08:26:04.981Z",
-    "buildSuccess": false,
-    "runtimeSuccess": false,
-    "apiSuccess": false,
-    "persistenceSuccess": false,
-    "score": 0
-  },
-  {
-    "id": "51647c67-f034-4db9-b101-6be04aada4b4",
-    "name": "TodoManager",
-    "mode": "crud-admin",
-    "status": "error",
-    "createdAt": "2026-06-05T11:52:16.771Z",
-    "buildSuccess": false,
-    "runtimeSuccess": false,
-    "apiSuccess": false,
-    "persistenceSuccess": false,
-    "score": 0
+    "status": "completed",
+    "createdAt": "2026-06-24T05:52:30.899Z",
+    "buildSuccess": true,
+    "runtimeSuccess": true,
+    "apiSuccess": true,
+    "persistenceSuccess": true,
+    "score": 80
   }
 ]

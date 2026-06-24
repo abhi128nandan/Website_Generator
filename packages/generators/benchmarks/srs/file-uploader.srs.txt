@@ -1,0 +1,9 @@
+# File Uploader SRS
+
+## Requirements
+- Render an `<input type="file">`.
+- Accept an `onUpload` prop (function).
+- Use state to track the currently selected file.
+- Render a "Upload" button that triggers the `onUpload` callback with the selected file.
+- Show the selected file name.
+- Must be a functional component exported as default.

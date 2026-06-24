@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "Home"
+  ],
+  "components": [
+    "Header",
+    "MainContent"
+  ],
+  "hooks": [],
+  "services": [],
+  "routes": [
+    "/"
+  ],
+  "prismaModels": []
+}

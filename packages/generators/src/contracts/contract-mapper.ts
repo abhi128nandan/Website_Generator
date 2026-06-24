@@ -1,4 +1,4 @@
-import { ContractDefinition, Logger } from '@paperclip/shared';
+import { ContractDefinition, Logger } from '@website-generator/shared';
 
 export class ContractMapper {
   /**

@@ -1,0 +1,434 @@
+{
+  "id": "e4bc7ee2-b28e-4fd9-9097-590d195239c0",
+  "status": "generating",
+  "createdAt": "2026-06-10T10:31:43.560Z",
+  "updatedAt": "2026-06-10T10:33:04.125Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [],
+  "appName": "TaskMaster",
+  "appType": "crud-admin",
+  "frontend": [
+    "React"
+  ],
+  "backend": [
+    "Express"
+  ],
+  "database": [
+    "PostgreSQL"
+  ],
+  "features": [
+    "Task creation",
+    "Task deletion",
+    "Task completion toggle",
+    "Priority assignment",
+    "Category associations"
+  ],
+  "workflows": [
+    "User creates task with priority and category",
+    "User marks task as complete",
+    "User deletes completed tasks",
+    "User filters tasks by category"
+  ],
+  "entities": [
+    {
+      "name": "Task",
+      "fields": [
+        "title",
+        "description",
+        "dueDate",
+        "priority",
+        "categoryId",
+        "completed"
+      ],
+      "validations": [
+        "title must be non-empty",
+        "priority must be 1-5",
+        "categoryId must reference existing category"
+      ],
+      "relationships": [
+        "1:N with Category"
+      ]
+    },
+    {
+      "name": "Category",
+      "fields": [
+        "name",
+        "color"
+      ],
+      "validations": [
+        "name must be unique",
+        "color must be valid hex code"
+      ],
+      "relationships": [
+        "1:N with Task"
+      ]
+    }
+  ],
+  "routes": [
+    "GET /api/tasks",
+    "POST /api/tasks",
+    "PUT /api/tasks/:id",
+    "DELETE /api/tasks/:id",
+    "GET /api/categories",
+    "POST /api/categories"
+  ],
+  "classifiedMode": "crud-admin",
+  "architecture": {
+    "entities": [
+      {
+        "name": "Task",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "isRequired": true,
+            "isId": true,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@id",
+              "@default(uuid())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "isRequired": false,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "dueDate",
+            "type": "DateTime",
+            "isRequired": false,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "priority",
+            "type": "TaskPriority",
+            "isRequired": false,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@default(LOW)"
+            ],
+            "isList": false
+          },
+          {
+            "name": "categoryId",
+            "type": "String",
+            "isRequired": true
+          },
+          {
+            "name": "category",
+            "type": "Category",
+            "isRequired": true,
+            "isRelation": true,
+            "relationTarget": "Category",
+            "attributes": [
+              "@relation(fields: [categoryId], references: [id], map: \"Task_categoryId_fkey\")"
+            ]
+          },
+          {
+            "name": "completed",
+            "type": "Boolean",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@default(now())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@updatedAt"
+            ],
+            "isList": false
+          },
+          {
+            "name": "category",
+            "type": "Category",
+            "isRequired": false,
+            "isRelation": true,
+            "relationTarget": "Category",
+            "attributes": [
+              "@relation(fields: [categoryId], references: [id], map: \"Task_categoryId_fkey\")"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Category",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "isRequired": true,
+            "isId": true,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@id",
+              "@default(uuid())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": true,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "color",
+            "type": "String",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [],
+            "isList": false
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@default(now())"
+            ],
+            "isList": false
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "isRequired": true,
+            "isId": false,
+            "isUnique": false,
+            "isRelation": false,
+            "attributes": [
+              "@updatedAt"
+            ],
+            "isList": false
+          },
+          {
+            "name": "tasks",
+            "type": "Task",
+            "isRequired": false,
+            "isList": true,
+            "isRelation": true,
+            "relationTarget": "Task",
+            "attributes": []
+          }
+        ]
+      }
+    ],
+    "endpoints": [
+      {
+        "path": "/api/tasks",
+        "method": "GET",
+        "entity": "Task",
+        "description": "Retrieve all tasks with optional category filter",
+        "businessLogic": "if category filter exists: filter tasks by categoryId. Sort by dueDate. Return paginated results with task details"
+      },
+      {
+        "path": "/api/tasks",
+        "method": "POST",
+        "entity": "Task",
+        "description": "Create a new task",
+        "businessLogic": "Validate title is non-empty, priority is 1-5, categoryId references existing category. Assign createdAt and updatedAt. Return created task"
+      },
+      {
+        "path": "/api/tasks/:id",
+        "method": "GET",
+        "entity": "Task",
+        "description": "Retrieve a specific task by ID",
+        "businessLogic": "Find task by ID. Return task details including category name"
+      },
+      {
+        "path": "/api/tasks/:id",
+        "method": "PUT",
+        "entity": "Task",
+        "description": "Update a task's properties",
+        "businessLogic": "Validate fields. Update task properties. Ensure categoryId references existing category. Update updatedAt"
+      },
+      {
+        "path": "/api/tasks/:id",
+        "method": "DELETE",
+        "entity": "Task",
+        "description": "Delete a specific task",
+        "businessLogic": "Find task by ID. Delete task if not already completed"
+      },
+      {
+        "path": "/api/tasks/:id/complete",
+        "method": "PUT",
+        "entity": "Task",
+        "description": "Toggle task completion status",
+        "businessLogic": "Find task by ID. Invert completed status. Update updatedAt"
+      },
+      {
+        "path": "/api/tasks/completed",
+        "method": "DELETE",
+        "entity": "Task",
+        "description": "Delete all completed tasks",
+        "businessLogic": "Find all completed tasks. Delete them in batch"
+      },
+      {
+        "path": "/api/categories",
+        "method": "GET",
+        "entity": "Category",
+        "description": "Retrieve all categories",
+        "businessLogic": "Return all categories with their task counts"
+      },
+      {
+        "path": "/api/categories",
+        "method": "POST",
+        "entity": "Category",
+        "description": "Create a new category",
+        "businessLogic": "Validate name is unique and color is valid hex code. Assign createdAt and updatedAt"
+      },
+      {
+        "path": "/api/categories/:id",
+        "method": "PUT",
+        "entity": "Category",
+        "description": "Update a category",
+        "businessLogic": "Validate name uniqueness and color format. Update updatedAt"
+      },
+      {
+        "path": "/api/categories/:id",
+        "method": "DELETE",
+        "entity": "Category",
+        "description": "Delete a category",
+        "businessLogic": "Check if category has associated tasks. If yes, return error. Otherwise delete"
+      }
+    ],
+    "pages": [
+      {
+        "route": "/",
+        "componentName": "Dashboard",
+        "entity": "Task",
+        "description": "Main dashboard showing task statistics and recent activity",
+        "features": [
+          "Task count by category",
+          "Completion rate chart",
+          "Recent task activity",
+          "Quick task creation"
+        ],
+        "isDashboard": true
+      },
+      {
+        "route": "/tasks",
+        "componentName": "TaskList",
+        "entity": "Task",
+        "description": "Task management interface with filtering and bulk actions",
+        "features": [
+          "Create new task",
+          "Edit task details",
+          "Delete tasks",
+          "Filter by category",
+          "Mark as complete"
+        ]
+      },
+      {
+        "route": "/categories",
+        "componentName": "CategoryManager",
+        "entity": "Category",
+        "description": "Category management interface",
+        "features": [
+          "Create category",
+          "Edit category",
+          "Delete category",
+          "View task associations"
+        ]
+      },
+      {
+        "route": "/logs",
+        "componentName": "ActivityLog",
+        "description": "System activity log",
+        "features": [
+          "View task creation/updates",
+          "Track category changes",
+          "Audit user actions"
+        ]
+      },
+      {
+        "route": "/analytics",
+        "componentName": "TaskAnalytics",
+        "description": "Task performance analytics",
+        "features": [
+          "Completion time analysis",
+          "Priority effectiveness",
+          "Category productivity metrics"
+        ]
+      }
+    ],
+    "navigation": [
+      {
+        "label": "Dashboard",
+        "route": "/"
+      },
+      {
+        "label": "Tasks",
+        "route": "/tasks"
+      },
+      {
+        "label": "Categories",
+        "route": "/categories"
+      },
+      {
+        "label": "Analytics",
+        "route": "/analytics"
+      },
+      {
+        "label": "Logs",
+        "route": "/logs"
+      }
+    ]
+  },
+  "generatorVersion": "1.0.0",
+  "workspaceIntegrity": true
+}

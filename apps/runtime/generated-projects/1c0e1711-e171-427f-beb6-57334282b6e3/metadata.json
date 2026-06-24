@@ -1,0 +1,12 @@
+{
+  "id": "1c0e1711-e171-427f-beb6-57334282b6e3",
+  "status": "failed",
+  "createdAt": "2026-06-11T08:43:50.126Z",
+  "updatedAt": "2026-06-11T08:51:36.529Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [
+    "Daily API token limit exhausted. Cannot generate code. 429 {\"error\":{\"message\":\"Rate limit reached for model `qwen/qwen3-32b` in organization `org_01kt8r2qjdfh0t1s5rff0mtc19` service tier `on_demand` on tokens per day (TPD): Limit 500000, Used 497056, Requested 5168. Please try again in 6m24.307199999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}"
+  ],
+  "errorCategory": "RATE LIMITED"
+}

@@ -1,4 +1,4 @@
-import { ContractDefinition, ContractField, Logger } from '@paperclip/shared';
+import { ContractDefinition, ContractField, Logger } from '@website-generator/shared';
 
 const RESERVED_WORDS = new Set(['id', 'createdAt', 'updatedAt', 'class', 'function', 'return', 'if', 'else', 'const', 'let', 'var']);
 const VALID_TYPES = new Set(['String', 'Int', 'Float', 'Boolean', 'DateTime']);

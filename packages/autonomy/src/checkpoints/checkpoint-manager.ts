@@ -1,14 +1,14 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { createHash, randomUUID } from 'crypto';
-import { PipelineStage, Checkpoint } from '@paperclip/shared';
+import { PipelineStage, Checkpoint } from '@website-generator/shared';
 import { GraphState } from '../graph/state';
 
 export class CheckpointManager {
   private baseDir: string;
 
   constructor(private projectId: string, private projectRoot: string) {
-    this.baseDir = path.join(this.projectRoot, '.paperclip', 'checkpoints');
+    this.baseDir = path.join(this.projectRoot, '.websiteGenerator', 'checkpoints');
   }
 
   async init(): Promise<void> {

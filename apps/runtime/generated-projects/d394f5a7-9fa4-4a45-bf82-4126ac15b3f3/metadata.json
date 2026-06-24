@@ -1,0 +1,12 @@
+{
+  "id": "d394f5a7-9fa4-4a45-bf82-4126ac15b3f3",
+  "status": "failed",
+  "createdAt": "2026-06-11T06:30:37.089Z",
+  "updatedAt": "2026-06-11T06:33:56.336Z",
+  "frontendPort": null,
+  "backendPort": null,
+  "errors": [
+    "Generation gates failed after 3 attempts. Generation aborted for this artifact."
+  ],
+  "errorCategory": "GENERATION FAILED"
+}

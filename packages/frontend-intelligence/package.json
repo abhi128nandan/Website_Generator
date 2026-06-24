@@ -1,5 +1,5 @@
 {
-  "name": "@paperclip/frontend-intelligence",
+  "name": "@website-generator/frontend-intelligence",
   "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,8 +9,8 @@
     "lint": "eslint \"src/**/*.ts*\""
   },
   "dependencies": {
-    "@paperclip/shared": "workspace:*",
-    "@paperclip/ai-engine": "workspace:*",
+    "@website-generator/shared": "workspace:*",
+    "@website-generator/ai-engine": "workspace:*",
     "@langchain/langgraph": "^0.0.18",
     "@langchain/core": "^0.1.61"
   },

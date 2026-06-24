@@ -1,9 +1,9 @@
 {
-  "name": "paperclip-core",
+  "name": "website-generator-core",
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev --filter @paperclip/paperclip-frontend --filter @paperclip/paperclip-backend",
+    "dev": "turbo run dev --filter @website-generator/website-generator-frontend --filter @website-generator/website-generator-backend",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },

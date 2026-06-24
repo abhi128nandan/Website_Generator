@@ -1,0 +1,29 @@
+{
+  "projectId": "cf0bab3e-6b47-4018-8846-1cb819d28940",
+  "architecture": {
+    "appType": "calculator-app",
+    "pages": [
+      "Calculator"
+    ],
+    "entities": [
+      "Calculator"
+    ],
+    "apis": [],
+    "designTokens": {
+      "primaryColor": "#007BFF",
+      "layout": "centered"
+    }
+  },
+  "features": [
+    "Perform addition, subtraction, multiplication, and division",
+    "Clean responsive UI with calculator display",
+    "Number buttons 0-9 and operator buttons (+, -, *, /)",
+    "Instant calculation result display",
+    "Clear button functionality"
+  ],
+  "components": [],
+  "edits": [],
+  "userPreferences": {},
+  "createdAt": "2026-06-23T07:04:12.116Z",
+  "lastEditedAt": "2026-06-23T07:04:12.116Z"
+}

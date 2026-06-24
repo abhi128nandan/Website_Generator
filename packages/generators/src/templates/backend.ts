@@ -1,4 +1,4 @@
-import { NormalizedRequirements } from '@paperclip/shared';
+import { NormalizedRequirements } from '@website-generator/shared';
 import fs from 'fs/promises';
 import path from 'path';
 import { normalizeExpressPath } from '../compiler/path-normalizer';

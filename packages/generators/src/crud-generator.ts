@@ -1,5 +1,5 @@
-import { NormalizedRequirements, CrudArchitectureSchema, Logger } from '@paperclip/shared';
-import { ProviderFactory } from '@paperclip/ai-engine';
+import { NormalizedRequirements, CrudArchitectureSchema, Logger } from '@website-generator/shared';
+import { ProviderFactory } from '@website-generator/ai-engine';
 import { TodoContract } from './contracts/todo.contract';
 import { InventoryContract } from './contracts/inventory.contract';
 import { CRMContract } from './contracts/crm.contract';

@@ -1,5 +1,6 @@
-import { Logger } from '@paperclip/shared';
+import { Logger } from '@website-generator/shared';
 import * as pdfParse from 'pdf-parse';
+import { DocumentSanityValidator } from '../document-sanity-validator';
 
 /**
  * Extracts raw text from a PDF buffer.
@@ -27,10 +28,17 @@ export async function readPdf(buffer: Buffer): Promise<string> {
   try {
     const data = await parser(buffer);
     Logger.info(`[Parser:PDF] Extracted ${data.text.length} characters`);
-    return cleanText(data.text);
+    const clean = cleanText(data.text);
+    DocumentSanityValidator.validate(clean);
+    return clean;
   } catch (err: any) {
+    if (err.message?.includes('DOCUMENT_EXTRACTION_INVALID')) {
+      throw err;
+    }
     Logger.warn(`[Parser:PDF] pdf-parse failed (${err.message}), falling back to raw text`);
-    return cleanText(buffer.toString('utf-8'));
+    const cleanFallback = cleanText(buffer.toString('utf-8'));
+    DocumentSanityValidator.validate(cleanFallback);
+    return cleanFallback;
   }
 }
 

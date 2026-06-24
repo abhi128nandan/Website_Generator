@@ -1,5 +1,5 @@
 import { StructuredLogger } from './structured-logger';
-import { RepairAction } from '@paperclip/shared';
+import { RepairAction } from '@website-generator/shared';
 
 export class RepairLogger {
   private logger: StructuredLogger;

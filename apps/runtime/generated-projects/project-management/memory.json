@@ -1,0 +1,50 @@
+{
+  "projectId": "project-management",
+  "architecture": {
+    "appType": "saas-dashboard",
+    "pages": [
+      "Login",
+      "Register",
+      "Dashboard",
+      "Workspace",
+      "Profile",
+      "Settings"
+    ],
+    "entities": [
+      "User",
+      "Workspace",
+      "Board",
+      "Task",
+      "Role"
+    ],
+    "apis": [
+      "POST /api/auth/login",
+      "POST /api/auth/register",
+      "GET /api/workspaces",
+      "POST /api/workspaces",
+      "GET /api/boards/:workspaceId",
+      "POST /api/tasks",
+      "PUT /api/tasks/:taskId",
+      "DELETE /api/tasks/:taskId",
+      "GET /api/users/profile"
+    ],
+    "designTokens": {
+      "primaryColor": "#4f46e5",
+      "secondaryColor": "#0f172a",
+      "layout": "sidebar"
+    }
+  },
+  "features": [
+    "Secure login/register with token validation and error handling",
+    "Roles: USER (Developer), MANAGER (Project Manager), ADMIN (Workspace Admin)",
+    "Workspace and board view with columns for To-Do, In Progress, Review, and Done",
+    "TaskManager hook using react-query for task creation, editing, deletion",
+    "Only MANAGER and ADMIN roles can assign tasks or move tasks to Done",
+    "Navbar displaying authenticated user profile and logout action"
+  ],
+  "components": [],
+  "edits": [],
+  "userPreferences": {},
+  "createdAt": "2026-06-23T21:19:06.597Z",
+  "lastEditedAt": "2026-06-23T21:19:06.597Z"
+}

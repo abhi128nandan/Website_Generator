@@ -10,7 +10,7 @@ Type: crud-admin
 
 ## Architecture
 This is a **standalone pnpm workspace** project.
-The database connects to the central Paperclip Core PostgreSQL instance.
+The database connects to the central Website Generator Core PostgreSQL instance.
 
 ## Prerequisites
 - Node.js >= 18

@@ -1,7 +1,10 @@
-import { GenerationRouter } from '../src/router/generation-router';
-import { NormalizedRequirements } from '@paperclip/shared';
-import fs from 'fs/promises';
+import dotenv from 'dotenv';
 import path from 'path';
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+
+import { GenerationRouter } from '../src/router/generation-router';
+import { NormalizedRequirements } from '@website-generator/shared';
+import fs from 'fs/promises';
 import os from 'os';
 
 const GOLDEN_TEMPLATES = [
@@ -51,7 +54,7 @@ async function runGoldenSuite() {
     console.log(`\n--------------------------------------------`);
     console.log(`🧪 Testing: ${template.appName} (${template.classifiedMode})`);
     
-    const targetDir = await fs.mkdtemp(path.join(os.tmpdir(), `paperclip-golden-${template.appName.toLowerCase().replace(/\\s+/g, '-')}-`));
+    const targetDir = await fs.mkdtemp(path.join(os.tmpdir(), `website-generator-golden-${template.appName.toLowerCase().replace(/\\s+/g, '-')}-`));
     
     try {
       await GenerationRouter.generate(

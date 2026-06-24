@@ -1,4 +1,4 @@
-import { ErrorCategory } from '@paperclip/shared';
+import { ErrorCategory } from '@website-generator/shared';
 
 export interface RepairContext {
   projectId: string;

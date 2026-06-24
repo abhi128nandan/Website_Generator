@@ -1,0 +1,8 @@
+# Navigation Bar SRS
+
+## Requirements
+- Render a `<nav>` element.
+- Accept `links` prop (array of objects with `label` and `href`).
+- Render an unordered list `<ul>` with list items `<li>` containing anchor `<a>` tags.
+- Accept an `activeUrl` string prop and highlight the matching link.
+- Must be a functional component exported as default.

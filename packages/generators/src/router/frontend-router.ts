@@ -1,6 +1,6 @@
-import { NormalizedRequirements } from '@paperclip/shared';
+import { NormalizedRequirements } from '@website-generator/shared';
 import { FrontendGenerator } from '../templates/frontend';
-import { SynthesizerGraph, ReactCompiler } from '@paperclip/frontend-intelligence';
+import { SynthesizerGraph, ReactCompiler } from '@website-generator/frontend-intelligence';
 
 export class FrontendRouter {
   static async generate(targetDir: string, reqs: NormalizedRequirements): Promise<void> {

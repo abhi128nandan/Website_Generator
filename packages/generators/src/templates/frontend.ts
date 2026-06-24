@@ -1,6 +1,8 @@
-import { NormalizedRequirements } from '@paperclip/shared';
+import { NormalizedRequirements } from '@website-generator/shared';
 import fs from 'fs/promises';
 import path from 'path';
+import { SystemScaffold } from '../scaffold/system-scaffold';
+
 
 export class FrontendGenerator {
   static async generate(targetDir: string, reqs: NormalizedRequirements): Promise<void> {
@@ -25,7 +27,15 @@ export class FrontendGenerator {
         axios: '^1.7.2',
         zustand: '^4.5.4',
         'react-router-dom': '^6.25.0',
-        'lucide-react': '^0.408.0'
+        'lucide-react': '^0.408.0',
+        '@tanstack/react-query': '^5.51.11',
+        'clsx': '^2.1.1',
+        'tailwind-merge': '^2.4.0',
+        'class-variance-authority': '^0.7.0',
+        '@radix-ui/react-slot': '^1.1.0',
+        '@radix-ui/react-dialog': '^1.1.1',
+        '@radix-ui/react-select': '^2.1.1',
+        '@radix-ui/react-label': '^2.1.0'
       },
       devDependencies: {
         '@types/react': '^18.3.3',
@@ -34,8 +44,10 @@ export class FrontendGenerator {
         autoprefixer: '^10.4.19',
         postcss: '^8.4.39',
         tailwindcss: '^3.4.4',
+        'tailwindcss-animate': '^1.0.7',
         typescript: '^5.5.3',
-        vite: '^5.3.4'
+        vite: '^5.3.4',
+        '@types/node': '^20.14.10'
       }
     };
 
@@ -43,9 +55,15 @@ export class FrontendGenerator {
 
     const viteConfig = `import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   server: {
     port: process.env.PORT ? parseInt(process.env.PORT) : 5173,
     strictPort: true,
@@ -60,10 +78,52 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: ["class"],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+    },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 }
 `;
     await fs.writeFile(path.join(frontendDir, 'tailwind.config.js'), tailwindConfig);
@@ -92,7 +152,11 @@ export default {
     "jsx": "react-jsx",
     "strict": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
@@ -115,24 +179,112 @@ export default {
     const srcDir = path.join(frontendDir, 'src');
     await fs.mkdir(srcDir, { recursive: true });
 
-    const mainTsx = `import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
-`;
+    const mainTsx = SystemScaffold.getMainTsxContent();
     await fs.writeFile(path.join(srcDir, 'main.tsx'), mainTsx);
+
+    // Error Authority Scaffold
+    await SystemScaffold.generateErrorAuthority(srcDir);
+
+    // Query Authority Scaffold
+    await SystemScaffold.generateQueryAuthority(srcDir);
+
+    // Auth Authority Scaffold
+    await SystemScaffold.generateAuthAuthority(srcDir);
 
     const indexCss = `@tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
 `;
     await fs.writeFile(path.join(srcDir, 'index.css'), indexCss);
+
+    const libDir = path.join(srcDir, 'lib');
+    await fs.mkdir(libDir, { recursive: true });
+    await fs.writeFile(path.join(libDir, 'utils.ts'), `import { clsx, type ClassValue } from "clsx"\nimport { twMerge } from "tailwind-merge"\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs))\n}\n`);
+
+    const uiDir = path.join(srcDir, 'components', 'ui');
+    await fs.mkdir(uiDir, { recursive: true });
+
+    await fs.writeFile(path.join(uiDir, 'button.tsx'), `import * as React from "react"\nimport { Slot } from "@radix-ui/react-slot"\nimport { cva, type VariantProps } from "class-variance-authority"\nimport { cn } from "@/lib/utils"\n\nconst buttonVariants = cva(\n  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",\n  {\n    variants: {\n      variant: {\n        default: "bg-primary text-primary-foreground hover:bg-primary/90",\n        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",\n        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",\n        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",\n        ghost: "hover:bg-accent hover:text-accent-foreground",\n        link: "text-primary underline-offset-4 hover:underline",\n      },\n      size: {\n        default: "h-10 px-4 py-2",\n        sm: "h-9 rounded-md px-3",\n        lg: "h-11 rounded-md px-8",\n        icon: "h-10 w-10",\n      },\n    },\n    defaultVariants: {\n      variant: "default",\n      size: "default",\n    },\n  }\n)\n\nexport interface ButtonProps\n  extends React.ButtonHTMLAttributes<HTMLButtonElement>,\n    VariantProps<typeof buttonVariants> {\n  asChild?: boolean\n}\n\nconst Button = React.forwardRef<HTMLButtonElement, ButtonProps>(\n  ({ className, variant, size, asChild = false, ...props }, ref) => {\n    const Comp = asChild ? Slot : "button"\n    return (\n      <Comp\n        className={cn(buttonVariants({ variant, size, className }))}\n        ref={ref}\n        {...props}\n      />\n    )\n  }\n)\nButton.displayName = "Button"\n\nexport { Button, buttonVariants }\n`);
+
+    await fs.writeFile(path.join(uiDir, 'card.tsx'), `import * as React from "react"\nimport { cn } from "@/lib/utils"\n\nconst Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(\n  ({ className, ...props }, ref) => (\n    <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props} />\n  )\n)\nCard.displayName = "Card"\n\nconst CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(\n  ({ className, ...props }, ref) => (\n    <div ref={ref} className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />\n  )\n)\nCardHeader.displayName = "CardHeader"\n\nconst CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(\n  ({ className, ...props }, ref) => (\n    <h3 ref={ref} className={cn("text-2xl font-semibold leading-none tracking-tight", className)} {...props} />\n  )\n)\nCardTitle.displayName = "CardTitle"\n\nconst CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(\n  ({ className, ...props }, ref) => (\n    <p ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />\n  )\n)\nCardDescription.displayName = "CardDescription"\n\nconst CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(\n  ({ className, ...props }, ref) => (\n    <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />\n  )\n)\nCardContent.displayName = "CardContent"\n\nconst CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(\n  ({ className, ...props }, ref) => (\n    <div ref={ref} className={cn("flex items-center p-6 pt-0", className)} {...props} />\n  )\n)\nCardFooter.displayName = "CardFooter"\n\nexport { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }\n`);
+
+    await fs.writeFile(path.join(uiDir, 'input.tsx'), `import * as React from "react"\nimport { cn } from "@/lib/utils"\n\nexport interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}\n\nconst Input = React.forwardRef<HTMLInputElement, InputProps>(\n  ({ className, type, ...props }, ref) => {\n    return (\n      <input\n        type={type}\n        className={cn(\n          "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",\n          className\n        )}\n        ref={ref}\n        {...props}\n      />\n    )\n  }\n)\nInput.displayName = "Input"\n\nexport { Input }\n`);
+
+    await fs.writeFile(path.join(uiDir, 'textarea.tsx'), `import * as React from "react"\nimport { cn } from "@/lib/utils"\n\nexport interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}\n\nconst Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(\n  ({ className, ...props }, ref) => {\n    return (\n      <textarea\n        className={cn(\n          "flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",\n          className\n        )}\n        ref={ref}\n        {...props}\n      />\n    )\n  }\n)\nTextarea.displayName = "Textarea"\n\nexport { Textarea }\n`);
+
+    await fs.writeFile(path.join(uiDir, 'badge.tsx'), `import * as React from "react"\nimport { cva, type VariantProps } from "class-variance-authority"\nimport { cn } from "@/lib/utils"\n\nconst badgeVariants = cva(\n  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",\n  {\n    variants: {\n      variant: {\n        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",\n        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",\n        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",\n        outline: "text-foreground",\n      },\n    },\n    defaultVariants: {\n      variant: "default",\n    },\n  }\n)\n\nexport interface BadgeProps\n  extends React.HTMLAttributes<HTMLDivElement>,\n    VariantProps<typeof badgeVariants> {}\n\nfunction Badge({ className, variant, ...props }: BadgeProps) {\n  return (\n    <div className={cn(badgeVariants({ variant }), className)} {...props} />\n  )\n}\n\nexport { Badge, badgeVariants }\n`);
+
+    await fs.writeFile(path.join(uiDir, 'alert.tsx'), `import * as React from "react"\nimport { cva, type VariantProps } from "class-variance-authority"\nimport { cn } from "@/lib/utils"\n\nconst alertVariants = cva(\n  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",\n  {\n    variants: {\n      variant: {\n        default: "bg-background text-foreground",\n        destructive: "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",\n      },\n    },\n    defaultVariants: {\n      variant: "default",\n    },\n  }\n)\n\nconst Alert = React.forwardRef<\n  HTMLDivElement,\n  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>\n>(({ className, variant, ...props }, ref) => (\n  <div\n    ref={ref}\n    role="alert"\n    className={cn(alertVariants({ variant }), className)}\n    {...props}\n  />\n))\nAlert.displayName = "Alert"\n\nconst AlertTitle = React.forwardRef<\n  HTMLParagraphElement,\n  React.HTMLAttributes<HTMLHeadingElement>\n>(({ className, ...props }, ref) => (\n  <h5\n    ref={ref}\n    className={cn("mb-1 font-medium leading-none tracking-tight", className)}\n    {...props}\n  />\n))\nAlertTitle.displayName = "AlertTitle"\n\nconst AlertDescription = React.forwardRef<\n  HTMLParagraphElement,\n  React.HTMLAttributes<HTMLParagraphElement>\n>(({ className, ...props }, ref) => (\n  <div\n    ref={ref}\n    className={cn("text-sm [&_p]:leading-relaxed", className)}\n    {...props}\n  />\n))\nAlertDescription.displayName = "AlertDescription"\n\nexport { Alert, AlertTitle, AlertDescription }\n`);
+
+    await fs.writeFile(path.join(uiDir, 'dialog.tsx'), `import * as React from "react"\nimport * as DialogPrimitive from "@radix-ui/react-dialog"\nimport { X } from "lucide-react"\nimport { cn } from "@/lib/utils"\n\nconst Dialog = DialogPrimitive.Root\nconst DialogTrigger = DialogPrimitive.Trigger\nconst DialogPortal = DialogPrimitive.Portal\nconst DialogClose = DialogPrimitive.Close\n\nconst DialogOverlay = React.forwardRef<\n  React.ElementRef<typeof DialogPrimitive.Overlay>,\n  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>\n>(({ className, ...props }, ref) => (\n  <DialogPrimitive.Overlay\n    ref={ref}\n    className={cn(\n      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",\n      className\n    )}\n    {...props}\n  />\n))\nDialogOverlay.displayName = DialogPrimitive.Overlay.displayName\n\nconst DialogContent = React.forwardRef<\n  React.ElementRef<typeof DialogPrimitive.Content>,\n  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>\n>(({ className, children, ...props }, ref) => (\n  <DialogPortal>\n    <DialogOverlay />\n    <DialogPrimitive.Content\n      ref={ref}\n      className={cn(\n        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",\n        className\n      )}\n      {...props}\n    >\n      {children}\n      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">\n        <X className="h-4 w-4" />\n        <span className="sr-only">Close</span>\n      </DialogPrimitive.Close>\n    </DialogPrimitive.Content>\n  </DialogPortal>\n))\nDialogContent.displayName = DialogPrimitive.Content.displayName\n\nconst DialogHeader = ({\n  className,\n  ...props\n}: React.HTMLAttributes<HTMLDivElement>) => (\n  <div\n    className={cn(\n      "flex flex-col space-y-1.5 text-center sm:text-left",\n      className\n    )}\n    {...props}\n  />\n)\nDialogHeader.displayName = "DialogHeader"\n\nconst DialogFooter = ({\n  className,\n  ...props\n}: React.HTMLAttributes<HTMLDivElement>) => (\n  <div\n    className={cn(\n      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",\n      className\n    )}\n    {...props}\n  />\n)\nDialogFooter.displayName = "DialogFooter"\n\nconst DialogTitle = React.forwardRef<\n  React.ElementRef<typeof DialogPrimitive.Title>,\n  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>\n>(({ className, ...props }, ref) => (\n  <DialogPrimitive.Title\n    ref={ref}\n    className={cn(\n      "text-lg font-semibold leading-none tracking-tight",\n      className\n    )}\n    {...props}\n  />\n))\nDialogTitle.displayName = DialogPrimitive.Title.displayName\n\nconst DialogDescription = React.forwardRef<\n  React.ElementRef<typeof DialogPrimitive.Description>,\n  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>\n>(({ className, ...props }, ref) => (\n  <DialogPrimitive.Description\n    ref={ref}\n    className={cn("text-sm text-muted-foreground", className)}\n    {...props}\n  />\n))\nDialogDescription.displayName = DialogPrimitive.Description.displayName\n\nexport {\n  Dialog,\n  DialogPortal,\n  DialogOverlay,\n  DialogClose,\n  DialogTrigger,\n  DialogContent,\n  DialogHeader,\n  DialogFooter,\n  DialogTitle,\n  DialogDescription,\n}\n`);
+
+    await fs.writeFile(path.join(uiDir, 'skeleton.tsx'), `import { cn } from "@/lib/utils"\n\nfunction Skeleton({\n  className,\n  ...props\n}: React.HTMLAttributes<HTMLDivElement>) {\n  return (\n    <div\n      className={cn("animate-pulse rounded-md bg-muted", className)}\n      {...props}\n    />\n  )\n}\n\nexport { Skeleton }\n`);
+
+    const layoutDir = path.join(srcDir, 'components', 'layout');
+    await fs.mkdir(layoutDir, { recursive: true });
+
+    await fs.writeFile(path.join(layoutDir, 'PageContainer.tsx'), `import * as React from "react"\nimport { cn } from "@/lib/utils"\n\nconst PageContainer = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(\n  ({ className, ...props }, ref) => (\n    <div\n      ref={ref}\n      className={cn("mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8", className)}\n      {...props}\n    />\n  )\n)\nPageContainer.displayName = "PageContainer"\n\nexport { PageContainer }\n`);
+
+    await fs.writeFile(path.join(layoutDir, 'DashboardLayout.tsx'), `import * as React from "react"\nimport { cn } from "@/lib/utils"\n\ninterface DashboardLayoutProps extends React.HTMLAttributes<HTMLDivElement> {\n  sidebar?: React.ReactNode;\n  header?: React.ReactNode;\n}\n\nconst DashboardLayout = React.forwardRef<HTMLDivElement, DashboardLayoutProps>(\n  ({ className, sidebar, header, children, ...props }, ref) => (\n    <div ref={ref} className={cn("flex h-screen w-full overflow-hidden bg-background", className)} {...props}>\n      {sidebar && (\n        <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-[80] border-r bg-muted/20">\n          {sidebar}\n        </div>\n      )}\n      <div className={cn("flex flex-col flex-1", sidebar && "md:pl-64")}>\n        {header && (\n          <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b bg-background px-4 sm:px-6 lg:px-8">\n            {header}\n          </header>\n        )}\n        <main className="flex-1 overflow-y-auto">\n          <div className="py-6">\n            {children}\n          </div>\n        </main>\n      </div>\n    </div>\n  )\n)\nDashboardLayout.displayName = "DashboardLayout"\n\nexport { DashboardLayout }\n`);
+
+    await fs.writeFile(path.join(layoutDir, 'ResponsiveGrid.tsx'), `import * as React from "react"\nimport { cn } from "@/lib/utils"\n\ninterface ResponsiveGridProps extends React.HTMLAttributes<HTMLDivElement> {\n  columns?: 1 | 2 | 3 | 4;\n}\n\nconst ResponsiveGrid = React.forwardRef<HTMLDivElement, ResponsiveGridProps>(\n  ({ className, columns = 3, ...props }, ref) => {\n    const gridCols = {\n      1: "grid-cols-1",\n      2: "grid-cols-1 sm:grid-cols-2",\n      3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",\n      4: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",\n    }[columns];\n\n    return (\n      <div\n        ref={ref}\n        className={cn("grid gap-4 md:gap-6", gridCols, className)}\n        {...props}\n      />\n    )\n  }\n)\nResponsiveGrid.displayName = "ResponsiveGrid"\n\nexport { ResponsiveGrid }\n`);
+
+
 
     let appTsx = `import React from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'

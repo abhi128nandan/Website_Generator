@@ -1,6 +1,6 @@
 # Groq Integration Guide
 
-This guide details how to configure and utilize Groq as the AI inference backend for the `paperclip-core` generation pipeline.
+This guide details how to configure and utilize Groq as the AI inference backend for the `website-generator-core` generation pipeline.
 
 ## Environment Setup
 Groq relies on your personal or enterprise API key. Update your `.env` file at the root of the project to look like the following:

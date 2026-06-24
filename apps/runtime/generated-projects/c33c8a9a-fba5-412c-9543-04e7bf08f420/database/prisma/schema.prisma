@@ -1,0 +1,36 @@
+datasource db {
+  provider = "postgresql"
+  url = "postgresql://postgres:postgres@localhost:5432/paperclip_generated"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Task {
+id String @id @default(uuid())
+title String
+description String?
+dueDate DateTime?
+priority TaskPriority? @default(LOW)
+categoryId String
+completed Boolean
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+}
+
+model Category {
+id String @id @default(uuid())
+name String  @unique
+color String
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+tasks String[]
+}

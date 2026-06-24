@@ -5,4 +5,4 @@ export {
   RepairAction,
   PipelineStage,
   Checkpoint
-} from '@paperclip/shared';
+} from '@website-generator/shared';

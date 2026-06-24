@@ -1,6 +1,6 @@
 import { BaseLLMProvider } from './base';
 import { GenerateOptions, ProviderHealth } from './types';
-import { Logger } from '@paperclip/shared';
+import { Logger } from '@website-generator/shared';
 
 export class OllamaProvider extends BaseLLMProvider {
   private baseUrl: string;

@@ -1,0 +1,14 @@
+{
+  "appType": "calculator-app",
+  "pages": [
+    "Calculator"
+  ],
+  "entities": [
+    "Calculator"
+  ],
+  "apis": [],
+  "designTokens": {
+    "primaryColor": "#007BFF",
+    "layout": "centered"
+  }
+}

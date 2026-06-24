@@ -1,17 +1,33 @@
-# 📎 Paperclip Core
+<div align="center">
+  <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/terminal-square.svg" alt="Website Generator Core Logo" width="80" height="80" />
+  
+  # Website Generator Core
+  
+  **An autonomous, multi-agent code generation platform designed to build, compile, validate, and repair complex web applications from plain-text descriptions.**
+  
+  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?logo=typescript)](https://www.typescriptlang.org/)
+  [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.0-green?logo=node.js)](https://nodejs.org)
+  [![pnpm](https://img.shields.io/badge/pnpm-%5E9.0-orange?logo=pnpm)](https://pnpm.io/)
+  [![Turborepo](https://img.shields.io/badge/Turborepo-Enabled-red?logo=turborepo)](https://turbo.build/)
 
-Paperclip Core is an autonomous, multi-agent code generation platform designed to build, compile, validate, and repair complex web applications. By utilizing structured agent pipelines, Paperclip Core translates plain-text descriptions or detailed Software Requirement Specifications (SRS) into functional full-stack projects with databases, APIs, and client dashboards.
+  <br />
+</div>
 
 ---
 
+## 🌟 Overview
+
+Website Generator Core translates plain-text descriptions or detailed Software Requirement Specifications (SRS) into **functional, full-stack projects**. By utilizing structured agent pipelines, the system generates databases, API gateways, and fully-featured client dashboards iteratively, ensuring a high-quality end product through self-healing compiler loops.
+
 ## 🏗️ Architecture
 
-Paperclip Core operates as a monorepo consisting of dedicated workspace packages and applications:
+Website Generator Core operates as a highly modular monorepo consisting of dedicated workspace packages and applications:
 
 ```mermaid
 graph TD
-    User([User Prompt / SRS Document]) --> Web[apps/paperclip-frontend React UI]
-    Web --> Server[apps/paperclip-backend API gateway]
+    User([User Prompt / SRS Document]) --> Web[apps/website-generator-frontend]
+    Web --> Server[apps/website-generator-backend API gateway]
     Server --> Autonomy[packages/autonomy Orchestrator]
     Autonomy --> Router[packages/generators Router]
     Router --> Extractor[packages/ai-engine extractor]
@@ -23,86 +39,91 @@ graph TD
     Validation -- Pass / Built --> Runtime[runtime/generated-projects]
 ```
 
-### Key Modules:
-- **`apps/paperclip-frontend`**: The main React + Vite frontend dashboard where users view project statuses, manage files, and interact with live preview processes.
-- **`apps/paperclip-backend`**: The gateway API that handles generation requests, tracks active processes, and manages the project registry database.
-- **`packages/ai-engine`**: Integrates Groq, OpenRouter, and Ollama clients for schema extraction and code writing.
+### 📦 Key Modules
+- **`apps/website-generator-frontend`**: The React + Vite frontend dashboard where users view project statuses, manage files, and interact with live previews.
+- **`apps/website-generator-backend`**: The Express API gateway that handles generation requests, tracks active processes, and manages the project registry database.
+- **`packages/ai-engine`**: Integrates Groq, OpenRouter, and Ollama clients for schema extraction and code generation.
 - **`packages/generators`**: The templating engine, route classification, and validator suite (AST parsing, React tree structure, and functional verification).
 - **`packages/autonomy`**: Orchestrates pipelines, captures execution checkpoints, and manages automated recovery loops.
 - **`packages/db`**: Global database configurations, schemas, and migrations.
 
 ---
 
-## ✨ Features
+## ✨ Core Features
 
-- **Dynamic Pipeline Routing**: Auto-detects app classification (e.g. `crud-admin`, `frontend-app`, `hybrid-fullstack`) and adjusts templates accordingly.
-- **Self-Healing Loop (RepairAgent)**: Validates code using AST engines and React structure validators. If compile errors rise, it auto-snapshots the workspace, rolls back if errors increase, and logs repair actions.
-- **Semantic Placeholder Detection**: Scans and blocks placeholder UI cards, "Coming Soon" sections, and mock-up variables to ensure generated apps have fully functional, working components.
-- **Full-Stack previewing**: Dynamically spins up generated application backends and frontends on offset isolated ports (e.g. `3001` and `5175`).
+- 🧠 **Dynamic Pipeline Routing**: Auto-detects app classification (e.g. `crud-admin`, `frontend-app`, `hybrid-fullstack`) and routes prompts through specialized templates.
+- 🩹 **Self-Healing Loop (RepairAgent)**: Validates code using AST engines and React structure validators. It auto-snapshots the workspace, rolls back if compilation errors increase, and continuously repairs broken components.
+- 🚫 **Semantic Placeholder Detection**: Scans and blocks placeholder UI cards, "Coming Soon" text, and mock-up variables to guarantee functional outputs.
+- 🚀 **Full-Stack Previewing**: Dynamically spins up generated application backends and frontends on offset isolated ports for instant testing (e.g., `3001` and `5175`).
 
 ---
 
 ## 💻 Technology Stack
 
-- **Monorepo Manager**: `pnpm` workspace + Vercel Turborepo
-- **Frontend**: React, TypeScript, TailwindCSS, Vite, Lucide icons, Zustand (state)
-- **Backend**: Node.js, Express, ts-node-dev
-- **AI Integrations**: Llama 3 via Groq (default), OpenRouter, Ollama
-- **Database (Generated)**: Prisma ORM, PostgreSQL / SQLite
+| Domain | Technologies |
+| :--- | :--- |
+| **Monorepo Manager** | `pnpm` workspace + Vercel Turborepo |
+| **Frontend UI** | React, TypeScript, TailwindCSS, Vite, Zustand |
+| **Backend API** | Node.js, Express, `ts-node-dev` |
+| **AI Integrations** | Groq (Llama 3), OpenRouter, Ollama |
+| **Database** | Prisma ORM, PostgreSQL, SQLite |
 
 ---
 
-## 🛠️ Setup Instructions
+## 🛠️ Quick Start
 
 ### Prerequisites
-- Node.js (v22+)
-- `pnpm` (v9+)
+- [Node.js](https://nodejs.org) (v22+)
+- [pnpm](https://pnpm.io/installation) (v9+)
 - PostgreSQL (if running full-stack CRUD generators)
 
-### Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/paperclip-core.git
-   cd paperclip-core
-   ```
-2. Install monorepo dependencies:
-   ```bash
-   pnpm install
-   ```
-3. Set up environment configurations:
-   ```bash
-   cp .env.example .env
-   ```
-   *Edit `.env` to add your `GROQ_API_KEY` or other LLM API credentials.*
+### 1. Installation
 
-4. Run the development environment:
-   ```bash
-   pnpm run dev
-   ```
-   The backend server will run on port `3000` and the main dashboard UI will be hosted at `http://localhost:5174`.
+Clone the repository and install the monorepo dependencies:
+```bash
+git clone https://github.com/your-username/website-generator-core.git
+cd website-generator-core
+pnpm install
+```
+
+### 2. Configuration
+
+Set up environment configurations:
+```bash
+cp .env.example .env
+```
+*Be sure to edit `.env` to add your `GROQ_API_KEY` or preferred LLM API credentials.*
+
+### 3. Running the Platform
+
+Run the development environment from the root directory:
+```bash
+pnpm run dev
+```
+The backend server will run on port `3000` and the main dashboard UI will be hosted at `http://localhost:5174`.
 
 ---
 
-## 📂 Folder Structure
+## 📂 Project Structure
 
-```
-paperclip-core/
-├── agents/                  # [Placeholder] AI Agent templates
-├── apps/
-│   ├── paperclip-backend/   # Express API Server
-│   └── paperclip-frontend/  # React UI Client
-├── docs/
-│   ├── architecture/        # System design & API documentations
-│   ├── integrations/        # LLM integration guides
-│   └── reports/             # Reliability & system stabilization reports
-├── packages/
-│   ├── ai-engine/           # LLM connector and parsing logic
-│   ├── autonomy/            # Pipelines & checkpoints
-│   ├── db/                  # Prisma schemas & DB configuration
-│   ├── frontend-intelligence/# Compiler heuristics and fallback code engines
-│   ├── generators/          # Code templating and validation suite
-│   └── shared/              # Global models & shared utilities
-├── runtime/                 # Runtime generated projects, temp, and logs
+```text
+website-generator-core/
+├── agents/                  # AI Agent system templates
+├── apps/                    # Core executable applications
+│   ├── website-generator-backend/   
+│   └── website-generator-frontend/  
+├── docs/                    # Architecture, reports & diagnostics
+│   ├── architecture/        
+│   ├── integrations/        
+│   └── reports/             
+├── packages/                # Shared workspace libraries
+│   ├── ai-engine/           
+│   ├── autonomy/            
+│   ├── db/                  
+│   ├── frontend-intelligence/
+│   ├── generators/          
+│   └── shared/              
+├── runtime/                 # Target for generated projects & logs
 ├── docker/                  # Docker compose development databases
 └── scratch/                 # Local diagnostic and verification scripts
 ```
@@ -123,19 +144,13 @@ paperclip-core/
 
 ---
 
-## 🛣️ Future Roadmap
-
-- **Autonomous Agent Expansion**: Migrate generator logic to separate, fully containerized agent microservices under the `/agents` directory.
-- **Multimodal Visual Verification**: Capture preview screenshots and feed them to vision LLMs to confirm UI layouts match user requirements.
-- **Kubernetes Sandboxing**: Deploy generated projects inside temporary Kubernetes pods rather than local processes to guarantee execution sandboxing.
-
----
-
 ## 🤝 Contributing
 
-We welcome pull requests to improve the validation engine, expand templates, or add providers. Please ensure `pnpm run build` compiles successfully and all validators pass before opening a PR.
+We welcome pull requests to improve the validation engine, expand templates, or add providers. 
 
----
+1. Create a new branch for your feature.
+2. Run `pnpm run lint` and ensure there are no errors.
+3. Ensure `pnpm run build` compiles successfully and all validators pass before opening a PR.
 
 ## 📄 License
 

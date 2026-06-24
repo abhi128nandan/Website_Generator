@@ -2,7 +2,7 @@ import { RootCauseDiagnosis } from '../errors/root-cause-engine';
 import { AgentContext } from './root-cause-agent';
 import { RepairRegistry, RepairResult } from '../errors/repair-registry';
 import { RepairLogger } from '../logger/repair-logger';
-import { RepairAction } from '@paperclip/shared';
+import { RepairAction } from '@website-generator/shared';
 import { randomUUID } from 'crypto';
 
 export class RepairAgent {

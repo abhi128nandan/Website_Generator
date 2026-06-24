@@ -1,0 +1,36 @@
+{
+  "appType": "saas-dashboard",
+  "pages": [
+    "Dashboard",
+    "Employee Directory",
+    "Leave Requests",
+    "Pay Slips",
+    "Admin Dashboard",
+    "Employee Management",
+    "Salary Management"
+  ],
+  "entities": [
+    "User",
+    "Role",
+    "Employee",
+    "LeaveRequest",
+    "Payslip"
+  ],
+  "apis": [
+    "GET /api/employees",
+    "GET /api/employees/search",
+    "POST /api/auth/login",
+    "GET /api/users/roles",
+    "POST /api/leave-requests",
+    "PUT /api/leave-requests/:id",
+    "GET /api/payslips",
+    "PUT /api/employees/:id",
+    "POST /api/salaries"
+  ],
+  "designTokens": {
+    "primaryColor": "#4f46e5",
+    "secondaryColor": "#0f172a",
+    "layout": "sidebar",
+    "theme": "dark"
+  }
+}

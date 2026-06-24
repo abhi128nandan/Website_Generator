@@ -1,0 +1,9 @@
+# Data Grid Component SRS
+
+## Requirements
+- Render a `table` element.
+- Accept `columns` prop (array of strings).
+- Accept `data` prop (array of objects).
+- Dynamically render table headers based on columns.
+- Dynamically render table rows based on data.
+- Must be a functional component exported as default.

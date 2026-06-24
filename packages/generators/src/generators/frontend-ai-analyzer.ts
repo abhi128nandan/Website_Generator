@@ -1,5 +1,8 @@
-import { NormalizedRequirements, FrontendArchitectureSchema, FrontendArchitecture, Logger } from '@paperclip/shared';
-import { ProviderFactory } from '@paperclip/ai-engine';
+import { NormalizedRequirements, FrontendArchitectureSchema, FrontendArchitecture, Logger } from '@website-generator/shared';
+import { ProviderFactory } from '@website-generator/ai-engine';
+import { GeneratorObservability } from '../observability/observability-layer';
+import { RequirementIntelligence } from '../analysis/requirement-intelligence';
+import { FrontendComplexityGuard } from '../validators/frontend-complexity-guard';
 
 /**
  * AI-powered frontend architecture analyzer.
@@ -12,57 +15,36 @@ export class FrontendAIAnalyzer {
     try {
       const provider = ProviderFactory.getProvider();
 
-      const appNameLower = reqs.appName.toLowerCase();
-      
-      // Deterministic Architecture Templates
-      if (appNameLower === 'calculator' || appNameLower === 'calculator app') {
-        Logger.info('[FrontendAIAnalyzer] High confidence match for Calculator. Using deterministic template.');
-        reqs.frontendArchitecture = {
-          pages: [{ route: '/', componentName: 'CalculatorPage', description: 'Main calculator page' }],
-          components: [
-            { name: 'CalculatorDisplay', type: 'component', description: 'Displays current input and result' },
-            { name: 'CalculatorButtons', type: 'component', description: 'Renders the keypad buttons' }
-          ],
-          hooks: [{ name: 'useCalculator', description: 'Manages calculator state and operations' }],
-          services: []
-        };
-        return;
-      }
-      
-      if (appNameLower === 'todo app' || appNameLower === 'todo' || appNameLower === 'todo list') {
-        Logger.info('[FrontendAIAnalyzer] High confidence match for Todo App. Using deterministic template.');
-        reqs.frontendArchitecture = {
-          pages: [{ route: '/', componentName: 'TaskPage', description: 'Main todo list page' }],
-          components: [
-            { name: 'TaskForm', type: 'component', description: 'Form to add a new task' },
-            { name: 'TaskList', type: 'component', description: 'List of current tasks' }
-          ],
-          hooks: [{ name: 'useTasks', description: 'Manages task list state' }],
-          services: [{ name: 'taskApi', description: 'Service to handle task persistence' }]
-        };
-        return;
-      }
-      
-      if (appNameLower === 'counter app' || appNameLower === 'counter') {
-        Logger.info('[FrontendAIAnalyzer] High confidence match for Counter App. Using deterministic template.');
-        reqs.frontendArchitecture = {
-          pages: [{ route: '/', componentName: 'CounterPage', description: 'Main counter page' }],
-          components: [
-            { name: 'CounterDisplay', type: 'component', description: 'Displays the current count' },
-            { name: 'CounterControls', type: 'component', description: 'Buttons to increment and decrement count' }
-          ],
-          hooks: [{ name: 'useCounter', description: 'Manages counter state' }],
-          services: []
-        };
-        return;
+      // Requirement-driven complexity analysis (replaces keyword-based budgets)
+      const profile = RequirementIntelligence.analyze(reqs);
+      const budget = RequirementIntelligence.toBudget(profile);
+      Logger.info(`[FrontendAIAnalyzer] Requirement profile: complexity=${profile.complexity}, ui=${profile.uiComplexity}, state=${profile.stateComplexity}, backend=${profile.requiresBackend}, db=${profile.requiresDatabase}, auth=${profile.requiresAuthentication}`);
+
+      const blueprint = (reqs as any).blueprint;
+      let blueprintContext = '';
+      if (blueprint) {
+        const pageNames = (blueprint.pages || []).map((p: any) => typeof p === 'string' ? p : p.name);
+        blueprintContext = `
+Authoritative Business Context:
+Pages: ${pageNames.join(', ')}
+Entities: ${(blueprint.entities || []).join(', ')}
+APIs: ${(blueprint.apis || []).join(', ')}
+
+Use the following business blueprint as authoritative context.
+Do not invent conflicting pages.
+Do not invent conflicting entities.
+Do not invent conflicting API domains.
+Physical React architecture may extend this blueprint but must remain consistent with it.
+`;
       }
 
       let prompt = `You are a Senior Frontend Architect.
 Analyze the following application requirements and output a deterministic JSON structure representing the frontend-only architecture.
 You MUST output ONLY a valid JSON object matching the following structure exactly. Do not output markdown code blocks or any conversational text.
-
+${blueprintContext}
 Structure:
 {
+  "complexityScore": "simple" | "medium" | "complex",
   "components": [
     {
       "name": "string (PascalCase, e.g. SearchBar, WeatherCard)",
@@ -74,7 +56,14 @@ Structure:
     {
       "name": "string (camelCase, e.g. weatherApi, geolocationService)",
       "description": "string describing what this service does",
-      "externalApi": "string (optional — name of the external API, e.g. OpenWeatherMap, PokeAPI. If none, omit this field entirely or use empty string. DO NOT USE null.)"
+      "externalApi": "string (optional — name of the external API, e.g. OpenWeatherMap, PokeAPI. If none, omit this field entirely or use empty string. DO NOT USE null.)",
+      "endpoints": [
+        {
+          "method": "GET | POST | PUT | PATCH | DELETE",
+          "path": "string (e.g. /api/users)",
+          "description": "string describing what this endpoint does"
+        }
+      ]
     }
   ],
   "hooks": [
@@ -87,7 +76,9 @@ Structure:
     {
       "route": "string (e.g. /, /about, /settings)",
       "componentName": "string (PascalCase page component name)",
-      "description": "string describing what this page shows"
+      "description": "string describing what this page shows",
+      "isProtected": "boolean (optional, true if access is restricted to authenticated users. Default is false)",
+      "allowedRoles": "array of strings (optional, e.g. ['USER', 'MANAGER', 'ADMIN', 'SUPER_ADMIN']. Omit or use empty array if any authenticated user can access)"
     }
   ]
 }
@@ -102,39 +93,102 @@ Rules:
 - Components should be reusable and focused on UI rendering.
 - Services should handle external API calls, localStorage, or browser APIs.
 - Hooks should manage stateful logic (fetching, local storage, geolocation, etc).
-- Generate at least one page component and one service.
+- Generate at least one page component.
 - Use modern React patterns (functional components, hooks, async/await).
-- Consider responsive design, loading states, error handling, and user experience.`;
+- Consider responsive design, loading states, error handling, and user experience.
+- If 'Authoritative Business Context' contains APIs, you MUST map those explicit endpoints into the corresponding service.endpoints array.
 
-      const tier1Keywords = ['calculator', 'counter', 'converter', 'stopwatch', 'timer'];
-      const isTier1 = tier1Keywords.some(kw => reqs.appName.toLowerCase().includes(kw) || reqs.appType.toLowerCase().includes(kw));
+STRICT ARCHITECTURE BUDGET:
+This application has been classified as ${budget.size} complexity. You MUST stay strictly within the following limits to prevent over-decomposition:
+- MAXIMUM Components: ${budget.maxComponents}
+- MAXIMUM Hooks: ${budget.maxHooks}
+- MAXIMUM Services: ${budget.maxServices}
+- MAXIMUM Pages: ${budget.maxPages}
 
-      if (isTier1) {
-        prompt += `\n\nTIER 1 COMPLEXITY CONSTRAINTS:
-- This is a simple utility application. Keep architecture absolutely minimal.
-- Allowed: Exactly 1 page, 0 services, 0-1 hooks, 2-4 components.
-- Forbidden: Settings pages, About pages, Search bars, Geolocation, Analytics, History services (unless explicitly requested).
-- CRITICAL: Do NOT generate a service for a Tier 1 app unless it is absolutely impossible to build without one.`;
+If the application is simple, prefer inline state over creating custom hooks, prefer monolithic components over deep decomposition, and do NOT create services unless explicitly requested.
+
+HOOK BUDGET RULES
+Generate a custom hook ONLY if at least one condition is true:
+1. The hook encapsulates API communication.
+2. The hook contains multi-step business logic.
+3. The hook is expected to be reused by 2 or more components.
+
+Do NOT generate hooks for:
+* Single useState wrappers.
+* useToggle patterns.
+* useInput patterns.
+* Local component state.
+
+Prefer local React state instead.
+
+CONTEXT BUDGET RULES
+Generate Context Providers ONLY if:
+1. State is shared across multiple pages.
+2. State is consumed by 3 or more components.
+3. State represents Auth, Theme, Configuration, or Application-level data.
+
+Do NOT generate Context Providers for:
+* Single-page state.
+* Single-feature state.
+* Local component state.
+
+Prefer props or local state instead.
+
+COMPONENT BUDGET RULES
+Create a separate component ONLY if:
+1. It is reused.
+2. It has a distinct responsibility.
+3. It contains meaningful UI complexity.
+
+Avoid fragmenting UI into tiny wrapper components.
+
+Do NOT generate:
+* CardTitle
+* CardBody
+* Tiny presentational wrappers
+
+unless explicitly reused.`;
+
+      const targetDir = (reqs as any).__targetDir;
+      let architecture: any = null;
+      let parsed: any = null;
+      let valid = false;
+      let attempt = 1;
+      const maxAttempts = 3;
+
+      while (!valid && attempt <= maxAttempts) {
+        Logger.info(`[FrontendAIAnalyzer] Executing AI frontend architecture analysis (Attempt ${attempt}/${maxAttempts})...`);
+        const responseText = await provider.generateJSON(prompt);
+
+        const start = responseText.indexOf('{');
+        const end = responseText.lastIndexOf('}');
+        if (start === -1 || end === -1 || end < start) {
+          throw new Error('No JSON object found in AI response');
+        }
+        const jsonString = responseText.substring(start, end + 1);
+
+        parsed = JSON.parse(jsonString);
+        architecture = FrontendArchitectureSchema.parse(parsed);
+
+        try {
+          if (targetDir) {
+            await FrontendComplexityGuard.validate({ ...reqs, frontendArchitecture: architecture }, targetDir);
+          }
+          valid = true;
+        } catch (guardErr: any) {
+          Logger.warn(`[FrontendAIAnalyzer] Discarding generated architecture because it failed ComplexityGuard: ${guardErr.message}`);
+          attempt++;
+          if (attempt > maxAttempts) {
+            throw new Error(`Failed to generate an architecture within complexity limits after ${maxAttempts} attempts: ${guardErr.message}`);
+          }
+        }
       }
-
-      Logger.info('[FrontendAIAnalyzer] Executing AI frontend architecture analysis...');
-      const responseText = await provider.generateJSON(prompt);
-
-      const start = responseText.indexOf('{');
-      const end = responseText.lastIndexOf('}');
-      if (start === -1 || end === -1 || end < start) {
-        throw new Error('No JSON object found in AI response');
-      }
-      const jsonString = responseText.substring(start, end + 1);
-
-      const parsed = JSON.parse(jsonString);
-      const architecture = FrontendArchitectureSchema.parse(parsed);
 
       // Deduplicate names: Ensure pages don't conflict with components/hooks/services
       if (architecture.pages && architecture.components) {
         for (const page of architecture.pages) {
           if (!page.componentName.endsWith('Page')) {
-            const conflict = architecture.components.some(c => c.name === page.componentName);
+            const conflict = architecture.components.some((c: any) => c.name === page.componentName);
             if (conflict) {
               page.componentName += 'Page';
             }
@@ -142,32 +196,17 @@ Rules:
         }
       }
 
-      // Architecture Sanity Validation & Pruning
-      if (isTier1) {
-        Logger.info('[FrontendAIAnalyzer] Applying Tier 1 architectural pruning...');
-        if (architecture.pages && architecture.pages.length > 1) {
-          architecture.pages = architecture.pages.slice(0, 1);
-        }
-        
-        // Tier 1 apps MUST NOT have services (pure local state)
-        architecture.services = [];
-        
-        if (architecture.hooks && architecture.hooks.length > 2) {
-          architecture.hooks = architecture.hooks.slice(0, 2);
-        }
-        
-        // Filter out forbidden components
-        const forbiddenKeywords = ['setting', 'about', 'search', 'geo', 'analytic', 'history'];
-        
-        architecture.components = architecture.components.filter(c => {
-          const lowerName = c.name.toLowerCase();
-          return !forbiddenKeywords.some(kw => lowerName.includes(kw));
-        });
-        
-        if (architecture.components.length > 4) {
-          architecture.components = architecture.components.slice(0, 4);
-        }
+      if (targetDir) {
+        await GeneratorObservability.writeArtifact(targetDir, 'architecture-raw.json', architecture);
       }
+
+      // Architecture Sanity Validation
+      const complexity = parsed.complexityScore || 'medium';
+      delete parsed.complexityScore;
+      if ((architecture as any).complexityScore) {
+         delete (architecture as any).complexityScore;
+      }
+      Logger.info(`[FrontendAIAnalyzer] AI determined complexity: ${complexity}`);
 
       // === Architecture Manifest Locking ===
       // Build a canonical manifest of all files that will be generated.
@@ -175,18 +214,18 @@ Rules:
       // imports outside this manifest.
       const manifest = {
         components: architecture.components
-          .filter(c => c.type !== 'page')
-          .map(c => c.name),
-        hooks: architecture.hooks.map(h => h.name),
-        services: architecture.services.map(s => s.name),
-        pages: architecture.pages.map(p => p.componentName),
+          .filter((c: any) => c.type !== 'page')
+          .map((c: any) => c.name),
+        hooks: architecture.hooks.map((h: any) => h.name),
+        services: architecture.services.map((s: any) => s.name),
+        pages: architecture.pages.map((p: any) => p.componentName),
       };
 
       // Cross-reference validation: if services is empty, hooks should not
       // contain descriptions that reference service imports.
       if (manifest.services.length === 0 && architecture.hooks.length > 0) {
         const serviceKeywords = ['service', 'api', 'fetch from server', 'backend', 'endpoint'];
-        for (const hook of architecture.hooks) {
+        for (const hook of architecture.hooks as any[]) {
           const lowerDesc = hook.description.toLowerCase();
           if (serviceKeywords.some(kw => lowerDesc.includes(kw))) {
             // Rewrite description to avoid service references
@@ -203,6 +242,19 @@ Rules:
 
       reqs.frontendArchitecture = architecture;
       Logger.info(`[FrontendAIAnalyzer] AI analysis complete. Discovered ${architecture.components.length} components, ${architecture.services.length} services, ${architecture.hooks.length} hooks, and ${architecture.pages.length} pages.`);
+
+      if (targetDir) {
+        const metadata = { complexityScore: complexity };
+        await GeneratorObservability.writeArtifact(targetDir, 'metadata.json', metadata);
+        await GeneratorObservability.writeArtifact(targetDir, 'architecture-final.json', architecture);
+      }
+
+      // Consistency Check Warning
+      if (reqs.classifiedMode === 'frontend-app') {
+        if (architecture.services.length > 0 || reqs.database?.length > 0 || reqs.backend?.length > 0) {
+          Logger.warn('[ARCHITECTURE WARNING] Frontend-only app contains service layer or backend configuration.');
+        }
+      }
     } catch (err: any) {
       Logger.error(`[FrontendAIAnalyzer] Failed to analyze frontend architecture: ${err.message}`);
       // Provide a minimal fallback architecture so generation can continue
@@ -214,7 +266,7 @@ Rules:
         services: [],
         hooks: [],
         pages: [
-          { route: '/', componentName: 'Home', description: 'Main application page' },
+          { route: '/', componentName: 'Home', description: 'Main application page', isProtected: false, allowedRoles: [] },
         ],
       };
       Logger.warn('[FrontendAIAnalyzer] Using minimal fallback architecture.');

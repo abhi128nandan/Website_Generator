@@ -1,0 +1,8 @@
+# Modal Component SRS
+
+## Requirements
+- Render a fixed overlay `div` containing a modal content `div`.
+- Accept an `isOpen` prop (boolean). If false, return null.
+- Accept an `onClose` prop (function) to trigger when clicking the overlay or a close button.
+- Render `children` inside the modal content.
+- Must be a functional component exported as default.

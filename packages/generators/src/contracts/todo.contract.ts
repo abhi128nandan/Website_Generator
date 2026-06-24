@@ -1,4 +1,4 @@
-import { ContractDefinition } from '@paperclip/shared';
+import { ContractDefinition } from '@website-generator/shared';
 
 export const TodoContract: ContractDefinition = {
   appName: 'Todo App',

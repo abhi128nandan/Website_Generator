@@ -1,4 +1,4 @@
-import { StructuredError } from '@paperclip/shared';
+import { StructuredError } from '@website-generator/shared';
 
 export class ErrorRegistry {
   private static errors: Map<string, StructuredError[]> = new Map();

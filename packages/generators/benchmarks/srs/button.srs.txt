@@ -1,0 +1,8 @@
+# Button Component SRS
+
+## Requirements
+- Render a `<button>` element.
+- Accept a `label` prop (string) to display text inside the button.
+- Accept an `onClick` prop (function) to handle click events.
+- Accept a `variant` prop ('primary', 'secondary', 'danger') to style the button differently.
+- Must be a functional component exported as default.

@@ -1,0 +1,23 @@
+{
+  "Schema": {
+    "capabilities": [
+      {
+        "name": "string (e.g., 'LeadScoringEngine')",
+        "description": "string (Explicit objective of the engine)",
+        "type": "string (e.g., 'workflow', 'analytics', 'heuristic')",
+        "inputs": ["string (e.g., 'UserData', 'ActivityLogs')"],
+        "outputs": ["string (e.g., 'ConversionProbabilityScore')"]
+      }
+    ]
+  },
+  "Fields": {
+    "Required": ["name", "description"],
+    "Optional": ["type", "inputs", "outputs"],
+    "Defaults": {
+      "type": "'engine'",
+      "inputs": "[]",
+      "outputs": "[]"
+    }
+  },
+  "BackwardCompatibility": "100% Backward Compatible. Because the array is strictly additive, downstream systems (like GenerationRouter or the legacy Scaffolder) that do not explicitly map 'capabilities' will simply ignore it via `JSON.parse`. It requires zero changes to legacy components to exist harmlessly in the schema."
+}

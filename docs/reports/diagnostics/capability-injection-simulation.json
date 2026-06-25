@@ -1,0 +1,24 @@
+{
+  "Injection": {
+    "capabilities": [
+      { "name": "Lead Scoring", "type": "workflow" },
+      { "name": "Revenue Analytics", "type": "analytics" }
+    ]
+  },
+  "Results": {
+    "Ignore": [
+      "GenerationRouter",
+      "FrontendGenerator",
+      "Scaffolder",
+      "FrontendAIAnalyzer"
+    ],
+    "Fail": [
+      "HybridGenerator (Only if FrontendArchitectureSchema Zod validation uses .strict(), otherwise ignored)"
+    ],
+    "CouldUse": [
+      "FrontendAppGenerator (could pass capabilities to AI prompt)",
+      "HybridGenerator (could pass capabilities to backend Express router generation)"
+    ]
+  },
+  "Verdict": "Injecting the capabilities object is highly safe. Because TypeScript interfaces allow extra properties and `JSON.parse` does not discard them, the object simply flows through the pipeline as dead weight without crashing the legacy systems."
+}

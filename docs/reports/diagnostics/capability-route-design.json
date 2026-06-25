@@ -1,0 +1,6 @@
+{
+  "routeExposure": "Automatic",
+  "endpointFormat": "POST /api/capabilities/{name}",
+  "feasibility": true,
+  "implementation": "Automatically append POST endpoints to index.ts for each capability in arch.capabilities, requiring the engine file and executing its logic using req.body. No LLM generation needed for the route exposure itself."
+}

@@ -1,8 +1,17 @@
 import { Router } from 'express';
 import { ProjectRegistry } from '../registry';
 import { processManager } from '../processManager';
+import { validateUUID } from '../middleware/validateInput';
 
 const router = Router();
+
+// Validate :id on every route in this router before the handler runs
+router.param('id', (req, res, next, id) => {
+  if (!validateUUID(id)) {
+    return res.status(400).json({ error: 'Invalid project id format' });
+  }
+  next();
+});
 
 router.get('/', async (req, res) => {
   try {

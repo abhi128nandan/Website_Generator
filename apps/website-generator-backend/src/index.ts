@@ -12,6 +12,9 @@ import logsRoutes from './routes/logs';
 import editRoutes from './routes/edit';
 import { autonomyRoutes } from '@website-generator/autonomy';
 import { HealthChecker } from '@website-generator/ai-engine';
+import { requireApiKey } from './middleware/auth';
+import { rateLimit } from 'express-rate-limit';
+import helmet from 'helmet';
 
 // Shadow File Startup Guard
 function checkShadowFiles(dir: string): string[] {
@@ -44,7 +47,21 @@ if (shadowFiles.length > 0) {
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:5174,http://localhost:5175')
+  .split(',')
+  .map(o => o.trim());
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  methods: ['GET', 'POST', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'x-api-key'],
+}));
+app.use(helmet());
 app.use(express.json());
 
 // Logging middleware
@@ -53,14 +70,39 @@ app.use((req, res, next) => {
   next();
 });
 
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+
+const generateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: 'Too many generation requests from this IP, please try again after 15 minutes' }
+});
+
+app.use(globalLimiter);
+
 // Routes
 app.use('/api/health', healthRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/generate', generateRoutes);
-app.use('/api/edit', editRoutes);
-app.use('/api/projects', logsRoutes);
-app.use('/api/autonomy', autonomyRoutes);
+app.use('/api/ai',        requireApiKey, aiRoutes);
+app.use('/api/projects',  requireApiKey, projectRoutes);
+app.use('/api/generate',  generateLimiter, requireApiKey, generateRoutes);
+app.use('/api/edit',      requireApiKey, editRoutes);
+app.use('/api/projects',  requireApiKey, logsRoutes);
+app.use('/api/autonomy',  requireApiKey, autonomyRoutes);
+
+import { ErrorRequestHandler } from 'express';
+
+const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
+  Logger.error(err);
+  res.status(err.status || 500).json({ 
+    error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message 
+  });
+};
+
+app.use(errorHandler);
 
 import { processRegistry } from './runtime/process-registry';
 

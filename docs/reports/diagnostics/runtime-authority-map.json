@@ -1,0 +1,11 @@
+{
+  "UI Authority": "React components generation",
+  "Layout Authority": "Layout and navigation generation",
+  "API Authority": "Frontend API clients generation",
+  "React Query Authority": "React Query hooks generation",
+  "Authentication Authority": "Auth providers and guards generation",
+  "Route Authority": "Frontend router configuration",
+  "Error Authority": "Error boundaries generation",
+  "Capability Authority": "Business logic engines generation",
+  "Runtime Integrator": "Generated index.ts (Must assume responsibility for exposing Capability Authority outputs via routes)"
+}

@@ -1,0 +1,9 @@
+{
+  "trace": [
+    "Capability Object (Frontend Architecture)",
+    "backend/src/engines (hybrid-generator.ts engine generation loop)",
+    "Orphaned TypeScript Files (engines/*.ts)"
+  ],
+  "stopPoint": "backend/src/engines",
+  "reason": "The engines are written to the filesystem but are never imported by index.ts or exposed by any Express route. The runtime chain stops here because the service and API layers are completely unaware of the generated engine files."
+}

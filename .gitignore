@@ -75,3 +75,7 @@ workspace-root-detection.json
 
 # Generator Artifacts
 generation-artifacts/
+
+test-generation-*/
+test-capability.ts
+test-mixed-capability.ts

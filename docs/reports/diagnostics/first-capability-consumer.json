@@ -1,0 +1,4 @@
+{
+  "SafestFirstConsumer": "D. HybridGenerator",
+  "Why": "While ArchitecturePlanner is where the schema originates, the HybridGenerator is the safest first *consumer* of that schema. It already possesses the `generateValidCode` LLM pipeline, which is battle-tested for generating raw backend routes and frontend UI without crashing. Modifying the Scaffolder (C) would be extremely dangerous due to its deep coupling with Prisma and hardcoded string templates. Modifying the HybridGenerator only requires passing the `capabilities` string to an existing AI prompt loop, completely bypassing the brittleness of string interpolation."
+}

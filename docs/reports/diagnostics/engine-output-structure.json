@@ -1,0 +1,4 @@
+{
+  "OutputCapability": "Supported",
+  "Explanation": "The file system writer (`fs.writeFile`) in the generator pipelines can write to any arbitrary directory within the target directory. If the loop generating the capability defines the target path as `src/engines/LeadScoreEngine.ts`, the file system will happily create the `engines/` directory and write the file. There are no rigid directory constraints that forbid non-standard folders."
+}

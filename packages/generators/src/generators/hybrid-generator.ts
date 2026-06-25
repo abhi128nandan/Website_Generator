@@ -133,7 +133,7 @@ export class HybridGenerator {
     // === STEP 4: Backend ===
     const backendDir = path.join(targetDir, 'backend');
     onLog(4, '[hybrid-generator] Writing backend package...');
-    await this.generateBackendPackage(backendDir, reqs, needsDatabase);
+    await this.generateBackendPackage(backendDir, reqs, needsDatabase, onLog);
 
     // === STEP 5: Optional database ===
     if (needsDatabase) {
@@ -1565,13 +1565,14 @@ Your entire response must be a compilable source file.
     await fs.writeFile(path.join(frontendDir, 'tsconfig.json'), JSON.stringify(tsconfig, null, 2));
   }
 
-  private static async generateBackendPackage(backendDir: string, reqs: NormalizedRequirements, needsDb: boolean): Promise<void> {
+  private static async generateBackendPackage(backendDir: string, reqs: NormalizedRequirements, needsDb: boolean, onLog: (step: number, message: string) => void): Promise<void> {
     await fs.mkdir(backendDir, { recursive: true });
 
     const dependencies: Record<string, string> = {
       cors: '^2.8.5',
       dotenv: '^16.4.5',
       express: '^4.19.2',
+      zod: '^3.23.8',
     };
     if (needsDb) {
       dependencies['@prisma/client'] = '^5.22.0';
@@ -1726,6 +1727,129 @@ app.post('${normalizedPath}', async (req, res) => {
     }
 
     await fs.writeFile(path.join(srcDir, 'index.ts'), indexTs);
+
+    // === Generate Engines based on Capabilities ===
+    if (arch && arch.capabilities && arch.capabilities.length > 0) {
+      const enginesDir = path.join(srcDir, 'engines');
+      await fs.mkdir(enginesDir, { recursive: true });
+
+      const capabilityInterfaceCode = `import { z } from 'zod';\nexport interface Capability<I = any, O = any> {\n  inputSchema: z.ZodType<I>;\n  outputSchema: z.ZodType<O>;\n  execute(input: I): Promise<O>;\n}\n`;
+      await fs.writeFile(path.join(enginesDir, 'Capability.ts'), capabilityInterfaceCode);
+
+      const generatedCapabilities: string[] = [];
+
+      for (const cap of arch.capabilities) {
+        onLog(4, `[hybrid-generator] Generating AI Engine for Capability: ${cap.name}...`);
+        const enginePrompt = `You are an expert Backend Engineer and Software Architect. Write a fully functional, self-contained business logic engine class in TypeScript for a ${reqs.appName} application.
+Capability Name: ${cap.name}
+Description: ${cap.description}
+Capability Type: ${cap.type}
+Inputs: ${cap.inputs ? cap.inputs.join(', ') : 'None specified'}
+Outputs: ${cap.outputs ? cap.outputs.join(', ') : 'None specified'}
+
+Requirements:
+- Output a single TypeScript file that exports a class representing this engine.
+- The class MUST implement the Capability interface. You MUST import it as follows: \`import { Capability } from './Capability';\`
+- DTO VALIDATION (CRITICAL): You MUST import 'z' from 'zod'. You MUST define and export strict Zod schemas for both input and output named \`${cap.name}InputSchema\` and \`${cap.name}OutputSchema\`. Use \`.strict()\` for objects to reject unknown properties.
+- The class MUST assign these schemas to \`inputSchema\` and \`outputSchema\` instance properties.
+- The class MUST expose an \`async execute(input: z.infer<typeof ${cap.name}InputSchema>): Promise<z.infer<typeof ${cap.name}OutputSchema>>\` method.
+- Implement the ACTUAL logic inside the execute method (e.g. math algorithms, data transformations, workflow steps).
+- Do NOT use placeholder comments like "TODO", "Business Logic Goes Here", or "Placeholder".
+- Do NOT write Express route handlers. This must be pure, testable backend business logic.
+- Do NOT attempt to connect to the database directly unless passing PrismaClient as a dependency injection.
+- Return ONLY valid TypeScript source code. Do NOT explain. Do NOT use markdown fences. Do NOT provide comments outside the source file.
+`;
+        try {
+          const engineTs = await this.generateValidCode(provider, enginePrompt, false, cap.name, backendDir, onLog);
+          await fs.writeFile(path.join(enginesDir, `${cap.name}.ts`), engineTs);
+          generatedCapabilities.push(cap.name);
+        } catch (e: any) {
+          onLog(4, `[WARN] Generation Failed for Engine ${cap.name}: ${e.message}`);
+        }
+      }
+
+      // Generate Runtime Adapter Authority
+      if (generatedCapabilities.length > 0) {
+        onLog(4, `[hybrid-generator] Generating Runtime Adapter Authority...`);
+        const runtimeDir = path.join(srcDir, 'runtime');
+        await fs.mkdir(runtimeDir, { recursive: true });
+
+        // 1. Generate CapabilityRegistry.ts
+        let registryImports = `import { Capability } from '../engines/Capability';\n`;
+        let registryMap = `export const CapabilityRegistry: Record<string, Capability> = {\n`;
+        for (const name of generatedCapabilities) {
+          registryImports += `import ${name} from '../engines/${name}';\n`;
+          registryMap += `  "${name}": new ${name}(),\n`;
+        }
+        registryMap += `};\n`;
+        await fs.writeFile(path.join(runtimeDir, 'CapabilityRegistry.ts'), registryImports + '\n' + registryMap);
+
+        // 2. Generate CapabilityRuntime.ts
+        const runtimeTs = `import { CapabilityRegistry } from './CapabilityRegistry';
+
+export class CapabilityRuntime {
+  async execute(capabilityName: string, input: any): Promise<any> {
+    const engine = CapabilityRegistry[capabilityName];
+    if (!engine) {
+      throw new Error(\`Capability Engine '\${capabilityName}' not found in Registry.\`);
+    }
+    
+    if (typeof engine.execute !== 'function') {
+      throw new Error(\`Engine '\${capabilityName}' does not implement the Capability execute() contract.\`);
+    }
+
+    if (!engine.inputSchema) {
+      throw new Error(\`Engine '\${capabilityName}' is missing DTO Validation Schema. Execution blocked for security.\`);
+    }
+
+    const parsed = engine.inputSchema.safeParse(input);
+    if (!parsed.success) {
+      const error = new Error("DTO Validation Failed");
+      (error as any).status = 400;
+      (error as any).issues = parsed.error.issues;
+      throw error;
+    }
+
+    return await engine.execute(parsed.data);
+  }
+}
+`;
+        await fs.writeFile(path.join(runtimeDir, 'CapabilityRuntime.ts'), runtimeTs);
+
+        // 3. Inject route into index.ts
+        const indexPath = path.join(srcDir, 'index.ts');
+        let indexContent = await fs.readFile(indexPath, 'utf-8');
+        
+        const runtimeImport = `import { CapabilityRuntime } from './runtime/CapabilityRuntime';\nconst capabilityRuntime = new CapabilityRuntime();\n`;
+        
+        if (indexContent.includes('import express')) {
+            indexContent = indexContent.replace('import express', runtimeImport + 'import express');
+        } else {
+            indexContent = runtimeImport + indexContent;
+        }
+
+        const routeBlock = `
+// --- Capability Runtime API ---
+app.post('/api/capabilities/:name', async (req, res) => {
+  try {
+    const result = await capabilityRuntime.execute(req.params.name, req.body);
+    res.json(result);
+  } catch (error: any) {
+    const status = error.status || 500;
+    res.status(status).json({ error: error.message, issues: error.issues });
+  }
+});
+
+`;
+        if (indexContent.includes('app.listen(')) {
+            indexContent = indexContent.replace('app.listen(', routeBlock + 'app.listen(');
+        } else {
+            indexContent += '\n' + routeBlock;
+        }
+        
+        await fs.writeFile(indexPath, indexContent);
+      }
+    }
   }
 
   // ─────────────────────────────────────────────

@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "entities": {
+      "FrontendAIAnalyzer": "Does not crash if empty. Bypassed safely.",
+      "Scaffolder (CRUD)": "Requires entities to generate models, routers, and tables. But for 'frontend-app' mode, Scaffolder is not used.",
+      "HybridGenerator": "Requires entities for Prisma schema."
+    },
+    "apis": {
+      "FrontendAIAnalyzer": "Does not crash if empty. If empty, the Analyzer's prompt simply sees 'APIs: ' and generates 0 Services.",
+      "Scaffolder (CRUD)": "Generates API endpoints based on entities, largely ignores the planner's 'apis' array.",
+      "HybridGenerator": "Uses APIs array for custom backend routes."
+    }
+  },
+  "blastRadius": "ZERO for 'frontend-app' mode. The frontend generation pipeline (FrontendAIAnalyzer -> FrontendAppGenerator) operates perfectly well when `entities` and `apis` are empty arrays. In fact, keeping them empty prevents the exact architecture inflation we are investigating."
+}

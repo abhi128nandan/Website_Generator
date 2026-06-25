@@ -1,0 +1,7 @@
+{
+  "ASTValidators": "Accepted/Ignored. Validates raw source code files (*.ts, *.tsx), not the architecture blueprint.",
+  "FunctionalValidators": "Accepted/Ignored. These evaluate rendered output and database states.",
+  "PlaceholderValidators": "Accepted/Ignored. Checks for hardcoded placeholder text in files.",
+  "QualityCheckers": "Accepted/Ignored. Checks compilation state.",
+  "Verdict": "Adding a `capabilities` array to the architecture schema will not break any downstream validators because validators operate on the generated file system output, not the internal configuration JSON."
+}

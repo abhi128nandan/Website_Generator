@@ -1,0 +1,14 @@
+{
+  "cases": [
+    {
+      "type": "invalid_dto",
+      "status": 500,
+      "body": "{\"error\":\"Missing required input data\"}"
+    },
+    {
+      "type": "missing_engine",
+      "status": 500,
+      "body": "{\"error\":\"Capability Engine 'MissingEngine' not found in Registry.\"}"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "FirstLanguageLockPoint": "ArchitecturePlanner",
+  "Explanation": "While the GenerationRouter and Code Validators are technically the systems executing the language lock-in, the 'first' state where language independence becomes impossible is the ArchitecturePlanner. The JSON schema it enforces (`pages`, `designTokens`, `components`) inherently presupposes a User Interface architecture identical to a React SPA. There is no structural facility for the ArchitecturePlanner to output a Python Data Pipeline or a Go Microservice architecture.",
+  "FileLocation": "packages/generators/src/generators/architecture-planner.ts"
+}

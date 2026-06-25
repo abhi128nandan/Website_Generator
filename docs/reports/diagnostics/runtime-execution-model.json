@@ -1,0 +1,5 @@
+{
+  "model": "Workflow -> Runtime -> Capabilities",
+  "reasoning": "If Runtime Authority executes 'Capabilities -> DAG', it must reinvent state machines, queues, and retries for every language (Python, Node, Java). If it executes 'Workflow -> Runtime -> Capabilities', a workflow engine (like Temporal or AWS Step Functions) handles state, and the Runtime merely invokes stateless Capabilities.",
+  "conclusion": "This architecture minimizes future rewrites by centralizing state and orchestration outside of the capability execution logic."
+}

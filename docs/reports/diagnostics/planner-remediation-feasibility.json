@@ -1,0 +1,5 @@
+{
+  "feasibility": "High",
+  "implementation": "Condition the ArchitecturePlanner prompt strictly on `reqs.classifiedMode`. If the mode is `frontend-app`, inject a JSON schema template that completely omits the `entities` and `apis` properties, and explicitly instructs the AI to generate a purely presentational architecture blueprint.",
+  "risk": "Low. The TypeScript interface for `ArchitectureBlueprint` requires `entities` and `apis`, so we must supply empty arrays `[]` in the code if the AI omits them from the JSON response, ensuring the object satisfies the interface and downstream expectations."
+}

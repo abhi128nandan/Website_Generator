@@ -1,0 +1,9 @@
+{
+  "Rankings": {
+    "1. Templates": "Extreme contamination. The frontend and backend templates (packages/generators/src/templates/*) physically enforce the existence of an entity to build any functional view, and hard-code Prisma ORM and Express REST router patterns.",
+    "2. Planner": "High contamination. The ArchitecturePlanner forces the generation of an `entities` array and an `apis` array in its output schema, structurally preventing capability-driven logic.",
+    "3. Analyzer": "Medium contamination. The FrontendAIAnalyzer explicitly maps REST API endpoints to frontend Axios service files.",
+    "4. Router": "Medium contamination. The GenerationRouter defaults to the `crud-admin` (Scaffolder) pipeline for any unrecognized app type.",
+    "5. Validators": "Low contamination. Validators mostly check for valid TypeScript/React syntax, but some (like FunctionalFlowValidator) implicitly check for entity presence."
+  }
+}

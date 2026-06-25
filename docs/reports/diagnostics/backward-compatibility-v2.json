@@ -1,0 +1,7 @@
+{
+  "capabilitiesEmpty": {
+    "behavior": "Identical to current CRUD generation",
+    "regression": "Zero regression"
+  },
+  "reason": "If the capabilities array is empty, the additive generation loop in index.ts is skipped. The backend will continue to serve only standard CRUD routes, exactly as it does currently."
+}

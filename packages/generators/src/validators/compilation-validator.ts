@@ -36,8 +36,8 @@ export class CompilationValidator {
       traceData.push({
         validatorName,
         pass: success,
-        exactReturnValue: returnValue,
-        exactThrownError: error
+        exactReturnValue: returnValue ? { success: returnValue.success, errorCategory: returnValue.errorCategory } : null,
+        exactThrownError: error ? (error.message || String(error)) : null
       });
       fs.writeFileSync(tracePath, JSON.stringify(traceData, null, 2));
 

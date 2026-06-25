@@ -1,0 +1,9 @@
+{
+  "validators": {
+    "astValidation": "Unchanged (Only validates the JSON architecture schema)",
+    "tsCompilation": "Passes (Standard TypeScript imports)",
+    "repairLoop": "Unchanged (We modify the indexTs string before or after the repair loop completes, or we safely inject valid TS)",
+    "functionalValidator": "Unchanged (Validates the LLM-generated code. Appending static strings bypasses this in a safe way)"
+  },
+  "overallImpact": "None"
+}

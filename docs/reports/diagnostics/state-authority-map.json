@@ -1,0 +1,12 @@
+{
+  "taskId": "Task 4",
+  "question": "Who owns execution state?",
+  "evaluation": {
+    "Capability Runtime": "Should remain pure, stateless, and unaware of history.",
+    "Workflow Runtime": "Handles state transition logic, but should not physically store the durable bytes to ensure stateless scaling of orchestrator nodes.",
+    "Database (Business DB)": "Should not own system execution state; pollutes domain models.",
+    "Dedicated State Store / Event Log": "The optimal location. An isolated persistence layer explicitly designed for workflow execution history."
+  },
+  "singleSourceOfTruth": "Dedicated State Store (State Persistence Authority)",
+  "conclusion": "The State Persistence Authority acts as the absolute Single Source of Truth for execution history. The Workflow Runtime reads from and writes to it, but the storage layer physically owns the state."
+}

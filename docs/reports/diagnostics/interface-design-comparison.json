@@ -1,0 +1,15 @@
+{
+  "options": {
+    "A": "execute(input) (Universal Command Pattern)",
+    "B": "run(input) (Generic but less descriptive)",
+    "C": "Domain-specific methods (Current approach)"
+  },
+  "rankings": {
+    "maintainability": "Option A (Standardized interface across the entire monorepo)",
+    "languageIndependence": "Option A (Translates identically to Python/Go interfaces)",
+    "aiGenerationSimplicity": "Option A (Forces the LLM to adhere to a rigid signature)",
+    "runtimeSimplicity": "Option A (Runtime just calls .execute(payload))",
+    "futureWorkflowCompatibility": "Option A (Workflow engines expect generic workers with an execute/run semantic)"
+  },
+  "smallestAdditive": "interface Capability<TInput, TOutput> { execute(input: TInput): Promise<TOutput> }"
+}

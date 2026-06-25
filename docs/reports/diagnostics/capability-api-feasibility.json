@@ -1,0 +1,5 @@
+{
+  "canAutomaticallyExpose": true,
+  "impactOnCrud": "None",
+  "conflictRisk": "Low (Uses isolated /api/capabilities namespace)"
+}

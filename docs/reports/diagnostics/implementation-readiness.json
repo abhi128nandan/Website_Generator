@@ -1,0 +1,6 @@
+{
+  "status": "Ready",
+  "blockers": [],
+  "confidence": "High",
+  "actionPlan": "Modify hybrid-generator.ts to inject app.post('/api/capabilities/{name}', ...) handlers into the indexTs string."
+}

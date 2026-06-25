@@ -1,0 +1,6 @@
+{
+  "TargetStructure": "backend/src/engines/",
+  "NamingConventions": "[CapabilityName]Engine.ts (e.g., LeadScoreEngine.ts, FraudDetectionEngine.ts).",
+  "FilePlacement": "The engines are deliberately placed in `backend/src/engines/` rather than `services/` or `controllers/` to signify that they are pure computational/logic classes independent of REST API routing or React rendering logic.",
+  "OwnershipBoundaries": "Engines are strictly responsible for core business logic (calculations, heuristics, aggregations, workflows). They must not contain UI layout code (which belongs to `pages/`) or database connection boilerplates (which belongs to `repositories/` or `services/`), though they may accept data objects as inputs."
+}

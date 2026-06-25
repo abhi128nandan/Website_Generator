@@ -1,0 +1,9 @@
+{
+  "1. UI Authority": "Unaffected. The engines do not touch React code.",
+  "2. Layout Authority": "Unaffected.",
+  "3. API Authority": "Partially Affected. The API routers (Express controllers) may eventually need to be updated to import and invoke these Engine classes, but the generation of the Engine itself is completely decoupled and safe.",
+  "4. Error Authority": "Unaffected.",
+  "5. React Query Authority": "Unaffected.",
+  "6. Authentication Authority": "Unaffected.",
+  "7. Route Authority": "Unaffected."
+}

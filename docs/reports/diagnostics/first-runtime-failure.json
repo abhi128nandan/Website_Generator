@@ -1,0 +1,6 @@
+{
+  "phase": "35G",
+  "report": "First Runtime Failure",
+  "location": "c:\\paperclip-core\\website-generator\\packages\\generators\\src\\generators\\hybrid-generator.ts",
+  "cause": "The Express index.ts routing generation logic (lines 1616-1646) explicitly hardcodes iteration over 'arch.services' and ignores 'arch.capabilities'. This creates an isolation barrier where engines exist in the filesystem but have no entry points exposed to the network or application runtime."
+}

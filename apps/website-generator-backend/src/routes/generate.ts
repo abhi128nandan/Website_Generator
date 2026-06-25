@@ -1,4 +1,5 @@
 import { Router, Request } from 'express';
+import { validateTextInput, validateFileSize } from '../middleware/validateInput';
 import multer from 'multer';
 import { DocumentParser, RequirementExtractor } from '@website-generator/ai-engine';
 import { GenerationRouter, MetricsTracker } from '@website-generator/generators';
@@ -23,14 +24,19 @@ async function normalizeInput(req: Request): Promise<{ rawText: string, projectN
     if (!req.body.text) {
       throw new Error('No text provided in request body');
     }
-    return { rawText: req.body.text, projectName: 'Text Generated App', inputType: 'text' };
+    const rawText = validateTextInput(req.body.text);
+    return { rawText, projectName: 'Text Generated App', inputType: 'text' };
   } else if (req.is('multipart/form-data') || req.file) {
     if (!req.file) {
       throw new Error('No SRS file uploaded');
     }
+    validateFileSize(req.file.buffer);
     const rawText = await DocumentParser.extractRawText(req.file.buffer, req.file.mimetype);
-    const projectName = req.file.originalname.split('.')[0] || 'Generated App';
-    return { rawText, projectName, inputType: 'upload' };
+    const sanitized = validateTextInput(rawText);
+    const projectName = req.file.originalname
+      .replace(/[^a-zA-Z0-9 _-]/g, '')
+      .split('.')[0] || 'Generated App';
+    return { rawText: sanitized, projectName, inputType: 'upload' };
   } else {
     throw new Error('Unsupported Content-Type. Use multipart/form-data or application/json.');
   }

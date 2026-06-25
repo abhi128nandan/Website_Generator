@@ -1,0 +1,18 @@
+{
+  "input": "Create a premium Stripe-quality landing page",
+  "expectedArchitecture": {
+    "appType": "landing-page",
+    "pages": ["Home"],
+    "entities": [],
+    "apis": [],
+    "designTokens": { "primaryColor": "#6366f1", "layout": "landing" }
+  },
+  "actualArchitecture": {
+    "appType": "landing-page",
+    "pages": ["Home", "Pricing", { "name": "Dashboard", "isProtected": true }],
+    "entities": ["Subscriber", "Lead"],
+    "apis": ["POST /api/subscribe", "POST /api/leads"],
+    "designTokens": { "primaryColor": "#6366f1", "layout": "landing" }
+  },
+  "explanation": "Because the planner prompt uses a strict JSON template containing 'entities', 'apis', and an 'isProtected' page example, the LLM hallucinates 'Subscriber' and 'Lead' entities, API endpoints for them, and an authenticated Dashboard page, just to satisfy the requested data structure, heavily inflating the required architecture for a simple landing page."
+}

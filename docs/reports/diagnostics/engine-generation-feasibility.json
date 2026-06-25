@@ -1,0 +1,22 @@
+{
+  "LeadScoreEngine": {
+    "GenerationProbability": "High. Deterministic algorithm based on inputs.",
+    "RepairCompatibility": "High. TypeScript compiler will easily catch type mismatches in calculation operations.",
+    "ValidationCompatibility": "High."
+  },
+  "FraudDetectionEngine": {
+    "GenerationProbability": "High. The LLM can generate heuristic rules and point-based deduction algorithms.",
+    "RepairCompatibility": "High.",
+    "ValidationCompatibility": "High."
+  },
+  "RevenueAnalyticsEngine": {
+    "GenerationProbability": "Medium-High. May require hallucinated data structures to aggregate, but fundamentally it is just mathematical grouping.",
+    "RepairCompatibility": "High.",
+    "ValidationCompatibility": "High."
+  },
+  "ResearchGapEngine": {
+    "GenerationProbability": "Medium. Requires NLP or string manipulation heuristics, but still syntactically valid TypeScript.",
+    "RepairCompatibility": "High.",
+    "ValidationCompatibility": "High."
+  }
+}

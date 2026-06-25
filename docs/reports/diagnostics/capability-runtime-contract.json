@@ -1,0 +1,5 @@
+{
+  "deterministicContract": false,
+  "uniformConstructor": false,
+  "uniformExecutionMethod": false
+}

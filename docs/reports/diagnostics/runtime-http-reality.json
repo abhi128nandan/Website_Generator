@@ -1,0 +1,34 @@
+{
+  "endpoints": [
+    {
+      "engine": "ForecastingEngine",
+      "status": 500,
+      "ok": false,
+      "responsePreview": "{\"error\":\"Insufficient historical data points (minimum 3 periods required)\"}"
+    },
+    {
+      "engine": "FraudDetectionEngine",
+      "status": 500,
+      "ok": false,
+      "responsePreview": "{\"error\":\"Missing required input data\"}"
+    },
+    {
+      "engine": "LeadScoringEngine",
+      "status": 500,
+      "ok": false,
+      "responsePreview": "{\"error\":\"Missing required input data\"}"
+    },
+    {
+      "engine": "PricingEngine",
+      "status": 500,
+      "ok": false,
+      "responsePreview": "{\"error\":\"Missing required input data\"}"
+    },
+    {
+      "engine": "RecommendationEngine",
+      "status": 500,
+      "ok": false,
+      "responsePreview": "{\"error\":\"Purchase history must be a non-empty array\"}"
+    }
+  ]
+}

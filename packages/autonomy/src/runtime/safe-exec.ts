@@ -1,4 +1,5 @@
 import { spawn, ChildProcess } from 'child_process';
+import path from 'path';
 
 export interface SafeExecOptions {
   cwd: string;
@@ -17,16 +18,10 @@ export interface SafeExecResult {
 }
 
 export class SafeExecutor {
-  // Danger patterns - these can NEVER execute
-  private static DANGER_PATTERNS = [
-    /rm\s+-rf/,
-    /format/,
-    /shutdown/,
-    /del\s+\/s/i,
-    /rmdir\s+\/s/i,
-    /npm\s+publish/,
-    /git\s+push/
-  ];
+  // ALLOWLIST approach — only commands in this set can execute
+  private static ALLOWED_COMMANDS = new Set([
+    'pnpm', 'npm', 'npx', 'node', 'tsc', 'prisma', 'vite',
+  ]);
 
   private activeProcesses: Set<ChildProcess> = new Set();
 
@@ -36,7 +31,9 @@ export class SafeExecutor {
   }
 
   private isCommandSafe(command: string): boolean {
-    return !SafeExecutor.DANGER_PATTERNS.some(pattern => pattern.test(command));
+    // Extract just the binary name, ignoring path prefix
+    const binary = path.basename(command).split('.')[0].toLowerCase();
+    return SafeExecutor.ALLOWED_COMMANDS.has(binary);
   }
 
   async execute(command: string, args: string[], options: SafeExecOptions): Promise<SafeExecResult> {
@@ -77,7 +74,7 @@ export class SafeExecutor {
       const proc = spawn(command, args, { 
         cwd: options.cwd, 
         env,
-        shell: true // needed for pnpm/npm on windows sometimes, but careful with shell injections
+        shell: false
       });
       
       this.activeProcesses.add(proc);

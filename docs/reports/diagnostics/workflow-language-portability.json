@@ -1,0 +1,6 @@
+{
+  "taskId": "Task 6",
+  "question": "Can the same workflow execute on Node, Python, Java, Go, Rust without modification?",
+  "analysis": "If the workflow is defined as a declarative JSON structure (such as the Amazon States Language), it is completely independent of the execution language. A Go runtime or Python runtime can read the exact same JSON workflow state machine and orchestrate its local capability implementations.",
+  "conclusion": "Yes, it is strictly portable. However, this relies entirely on the Workflow Authority generating a language-agnostic schema (like a JSON State Machine) rather than generating TypeScript-specific code (e.g. nested Promises or RxJS streams). Thus, the Workflow must be represented as Data, not Code."
+}

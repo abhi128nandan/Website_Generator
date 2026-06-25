@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { ConversationalEditor } from '@website-generator/generators';
 import path from 'path';
 import os from 'os';
+import { validateUUID } from '../middleware/validateInput';
 
 const router = Router();
 const WEBSITE_GENERATOR_PROJECTS_ROOT = path.join(os.homedir(), 'WebsiteGeneratorProjects', 'projects');
@@ -12,7 +13,15 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Missing projectId or prompt' });
   }
 
-  const targetDir = path.join(WEBSITE_GENERATOR_PROJECTS_ROOT, projectId);
+  if (!validateUUID(projectId)) {
+    return res.status(400).json({ error: 'Invalid projectId format' });
+  }
+
+  const targetDir = path.resolve(WEBSITE_GENERATOR_PROJECTS_ROOT, projectId);
+
+  if (!targetDir.startsWith(path.resolve(WEBSITE_GENERATOR_PROJECTS_ROOT) + path.sep)) {
+    return res.status(400).json({ error: 'Invalid project path' });
+  }
   
   // Quick validation
   const fs = require('fs/promises');

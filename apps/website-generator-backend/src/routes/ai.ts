@@ -25,6 +25,26 @@ router.post('/settings/provider', async (req, res) => {
   try {
     const { provider, groqApiKey, openRouterApiKey, ollamaUrl } = req.body;
 
+    if (provider && !['groq', 'openrouter', 'ollama'].includes(provider)) {
+      return res.status(400).json({ error: 'Invalid provider' });
+    }
+
+    if (groqApiKey && groqApiKey !== '••••••••' && !/^gsk_[a-zA-Z0-9_-]{20,100}$/.test(groqApiKey)) {
+      return res.status(400).json({ error: 'Invalid Groq API key format' });
+    }
+
+    if (openRouterApiKey && openRouterApiKey !== '••••••••' && !/^sk-[a-zA-Z0-9_-]{20,100}$/.test(openRouterApiKey)) {
+      return res.status(400).json({ error: 'Invalid OpenRouter API key format' });
+    }
+
+    if (ollamaUrl) {
+      try {
+        new URL(ollamaUrl);
+      } catch {
+        return res.status(400).json({ error: 'Invalid Ollama URL' });
+      }
+    }
+
     // Update process.env in memory
     if (provider) process.env.AI_PROVIDER = provider;
     if (groqApiKey && groqApiKey !== '••••••••') process.env.GROQ_API_KEY = groqApiKey;
@@ -41,11 +61,12 @@ router.post('/settings/provider', async (req, res) => {
 
     const envLines = envContent.split('\n');
     const updateEnv = (key: string, value: string) => {
+      const safeValue = value.replace(/\r?\n/g, ''); // prevent env injection
       const idx = envLines.findIndex(l => l.startsWith(`${key}=`));
       if (idx >= 0) {
-        envLines[idx] = `${key}=${value}`;
+        envLines[idx] = `${key}=${safeValue}`;
       } else {
-        envLines.push(`${key}=${value}`);
+        envLines.push(`${key}=${safeValue}`);
       }
     };
 

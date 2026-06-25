@@ -1,0 +1,20 @@
+{
+  "MinimumArchitectureObject": {
+    "type": "business_capability",
+    "capabilities": [
+      {
+        "name": "LeadScoringEngine",
+        "description": "Calculates risk and conversion scores for incoming leads.",
+        "inputs": ["LeadDataStream", "HistoricalMetrics"],
+        "outputs": ["ConversionProbabilityScore", "ActionRecommendation"],
+        "operations": [
+          "NormalizeData",
+          "ApplyHeuristics",
+          "CalculateScore",
+          "FormatOutput"
+        ]
+      }
+    ]
+  },
+  "Feasibility": "Highly feasible. By representing the system as 'capabilities' rather than 'pages' or 'entities', a language-agnostic capability generator could map this object into a Python script, a Go background worker, or a Node microservice independently of any UI or database concerns."
+}

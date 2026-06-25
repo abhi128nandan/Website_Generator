@@ -1,0 +1,7 @@
+{
+  "ASTValidator": "Accepted. It validates generic TypeScript AST nodes. Since engines are pure TypeScript, they will pass flawlessly.",
+  "SyntaxGate": "Accepted. It only checks for markdown pollution or malformed JavaScript syntax.",
+  "FunctionalValidator": "Ignored/Accepted. Current FunctionalValidator primarily checks if the UI renders and API endpoints return 200s. It will ignore internal engine files without crashing.",
+  "PlaceholderValidator": "Accepted. Engines do not contain 'Execute Action' strings.",
+  "RepairAgent": "Accepted. The RepairAgent relies on stdout from the TypeScript compiler (tsc). If the engine code has a type error, the repair agent will fix it just as easily as it fixes a React component."
+}

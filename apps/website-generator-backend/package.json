@@ -10,15 +10,18 @@
   },
   "dependencies": {
     "@website-generator/ai-engine": "workspace:*",
+    "@website-generator/autonomy": "workspace:*",
     "@website-generator/db": "workspace:*",
     "@website-generator/generators": "workspace:*",
     "@website-generator/shared": "workspace:*",
-    "@website-generator/autonomy": "workspace:*",
     "archiver": "^8.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "multer": "^2.1.1"
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "multer": "^2.1.1",
+    "which": "^7.0.0"
   },
   "devDependencies": {
     "@types/archiver": "^7.0.0",
@@ -26,6 +29,7 @@
     "@types/express": "^4.17.21",
     "@types/multer": "^2.1.0",
     "@types/pdf-parse": "^1.1.5",
+    "@types/which": "^3.0.4",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3"
   }

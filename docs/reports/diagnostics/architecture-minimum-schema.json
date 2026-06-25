@@ -1,0 +1,8 @@
+{
+  "appType": "frontend-app",
+  "pages": ["Home"],
+  "designTokens": {
+    "primaryColor": "#000000",
+    "layout": "standard"
+  }
+}

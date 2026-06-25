@@ -4,6 +4,7 @@ import os from 'os';
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import { processRegistry } from './runtime/process-registry';
+import which from 'which';
 
 export type ProjectStatus = 'stopped' | 'starting' | 'running' | 'error';
 
@@ -29,8 +30,10 @@ export interface RuntimeDiagnostics {
 }
 
 function killProcessTree(pid: number) {
+  if (!Number.isInteger(pid) || pid <= 0) return;
+
   if (os.platform() === 'win32') {
-    exec(`taskkill /pid ${pid} /T /F`, () => {});
+    spawn('taskkill', ['/pid', String(pid), '/T', '/F'], { shell: false });
   } else {
     try {
       process.kill(-pid);
@@ -134,12 +137,15 @@ class ProjectRunnerManager {
     };
 
     const runCommand = (cmd: string, args: string[], name: string, customEnv?: Record<string, string>): Promise<void> => {
-      return new Promise((resolve, reject) => {
+      return new Promise(async (resolve, reject) => {
         log(`>>> [${name}] cwd: ${rootPath}`);
         log(`>>> [${name}] Running: ${cmd} ${args.join(' ')}`);
         
         const env = customEnv ? { ...process.env, ...customEnv } : process.env;
-        const proc = spawn(cmd, args, { cwd: rootPath, shell: true, env });
+        const resolvedCmd = await which(cmd).catch(() => null);
+        if (!resolvedCmd) return reject(new Error(`Command not found: ${cmd}`));
+
+        const proc = spawn(resolvedCmd, args, { cwd: rootPath, shell: false, env });
         log(`[process-manager] Registering child process ${proc.pid} (${name})`);
         if (proc.pid) {
           processRegistry.register(proc.pid, 0, projectId);
@@ -181,12 +187,15 @@ class ProjectRunnerManager {
       });
     };
     
-    const runService = (cmd: string, args: string[], name: string, customEnv?: Record<string, string>) => {
+    const runService = async (cmd: string, args: string[], name: string, customEnv?: Record<string, string>) => {
       log(`>>> [${name}] Starting background service from: ${rootPath}`);
       log(`>>> [${name}] Running: ${cmd} ${args.join(' ')}`);
       
       const env = customEnv ? { ...process.env, ...customEnv } : process.env;
-      const proc = spawn(cmd, args, { cwd: rootPath, shell: true, env });
+      const resolvedCmd = await which(cmd).catch(() => null);
+      if (!resolvedCmd) throw new Error(`Command not found: ${cmd}`);
+
+      const proc = spawn(resolvedCmd, args, { cwd: rootPath, shell: false, env });
       
       if (proc.pid) {
         const port = name === 'api:dev' ? backendPort : frontendPort;
@@ -499,7 +508,7 @@ class ProjectRunnerManager {
       if (needsBackend) {
         log('>>> [api:dev] Starting backend server...');
         await processRegistry.ensurePortFree(backendPort, projectId);
-        runService('pnpm', ['--filter', 'backend', 'run', 'dev'], 'api:dev', { PORT: backendPort.toString() });
+        await runService('pnpm', ['--filter', 'backend', 'run', 'dev'], 'api:dev', { PORT: backendPort.toString() });
       } else {
         log('[api:dev] Skipping backend startup (frontend-only mode)');
       }
@@ -514,7 +523,7 @@ class ProjectRunnerManager {
         while (!success) {
           log(`[web:dev] Attempting frontend startup on port ${currentPort}`);
           
-          await new Promise<void>((resolve) => {
+          await new Promise<void>(async (resolve) => {
             const env = { 
               ...process.env, 
               PORT: currentPort.toString(), 
@@ -523,7 +532,12 @@ class ProjectRunnerManager {
             };
             
             const args = ['--filter', 'frontend', 'run', 'dev', '--port', currentPort.toString(), '--strictPort'];
-            const proc = spawn('pnpm', args, { cwd: rootPath, shell: true, env });
+            const resolvedCmd = await which('pnpm').catch(() => null);
+            if (!resolvedCmd) {
+              log('[FATAL] Command not found: pnpm');
+              return resolve();
+            }
+            const proc = spawn(resolvedCmd, args, { cwd: rootPath, shell: false, env });
             
             if (proc.pid) {
               processRegistry.register(proc.pid, currentPort, projectId);

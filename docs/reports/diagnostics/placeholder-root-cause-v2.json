@@ -1,0 +1,6 @@
+{
+  "Trace": "packages/generators/src/templates/frontend.ts (Line 552)",
+  "WhyAIIsBypassed": "The AI is never invoked in the Scaffolder pipeline. The system exclusively uses string templates. If a page lacks a matching database entity to construct a CRUD table, the script immediately falls back to a hardcoded 'non-entity' template.",
+  "WhyWorkflowGenerationIsSkipped": "The template script only knows how to generate tables with columns mapped to entity fields. It possesses no logic for generating dynamic workflow UI or computational engines.",
+  "CapabilityInformationStatus": "The capability information (e.g., 'Lead Scoring') still exists at this point as `page.description` and `page.features`, but it is merely interpolated into generic string tags (e.g., `<h1>${page.description}</h1>`) rather than being processed by an LLM."
+}

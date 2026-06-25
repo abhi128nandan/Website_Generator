@@ -1,0 +1,17 @@
+{
+  "comparison": {
+    "Option A (Runtime parses AST)": {
+      "maintainability": "Low (Requires N different parsers for N languages)",
+      "scalability": "Low (Heavy computation per request/initialization)",
+      "reliability": "Low (AST structures vary between models and generations)",
+      "futureLanguageSupport": "Poor (O(N) effort for every new language)"
+    },
+    "Option B (Runtime reads Manifest)": {
+      "maintainability": "High (JSON parsing is universal)",
+      "scalability": "High (O(1) lookup of structured metadata)",
+      "reliability": "High (Schema-driven validation)",
+      "futureLanguageSupport": "Excellent (Manifest schema is language-agnostic)"
+    }
+  },
+  "conclusion": "A Manifest completely eliminates language-specific runtime parsing across the entire architectural lifecycle."
+}

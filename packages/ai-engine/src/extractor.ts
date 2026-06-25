@@ -20,9 +20,14 @@ export class RequirementExtractor {
     }
     
     // Non-SRS content heuristic
-    const srsKeywords = ['app', 'system', 'user', 'page', 'screen', 'feature', 'click', 'view', 'data', 'create', 'read', 'update', 'delete', 'login', 'admin', 'dashboard', 'button', 'api'];
+    const srsKeywords = [
+      'app', 'system', 'user', 'page', 'screen', 'feature', 'click', 'view', 
+      'data', 'create', 'read', 'update', 'delete', 'login', 'admin', 'dashboard', 
+      'button', 'api', 'ui', 'design', 'responsive', 'mobile', 'widget', 'card', 
+      'interface', 'frontend', 'backend', 'auth', 'database', 'model', 'route'
+    ];
     const keywordMatches = srsKeywords.filter(kw => trimmedText.toLowerCase().includes(kw)).length;
-    if (keywordMatches < 2 && trimmedText.length > 100) {
+    if (keywordMatches < 2 && trimmedText.length > 200) {
       throw new Error('Input Validation Failed: Document does not appear to be a Software Requirement Specification. Please describe an application, features, or system.');
     }
     const prompt = this.buildPrompt(rawText);

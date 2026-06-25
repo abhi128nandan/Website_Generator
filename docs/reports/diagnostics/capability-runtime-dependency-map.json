@@ -1,0 +1,15 @@
+{
+  "trace": [
+    "Architecture (Frontend)",
+    "Capabilities Array",
+    "HybridGenerator (Generator Logic)",
+    "Engine Generation (Writes to engines/*.ts)",
+    "Generated index.ts (The runtime Express App)",
+    "Express Runtime (Node.js)",
+    "Frontend (API Calls)"
+  ],
+  "dependencies": {
+    "index.ts": ["engines/*.ts"],
+    "Frontend": ["index.ts (/api/capabilities/*)"]
+  }
+}

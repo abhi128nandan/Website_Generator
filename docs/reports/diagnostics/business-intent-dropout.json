@@ -1,0 +1,14 @@
+{
+  "invalidState": {
+    "example": "'Manage Orders' or 'Lead Pipeline' becomes 'Execute Action'",
+    "exactLocation": "packages/generators/src/templates/frontend.ts, line 552: if (!pageTsx)"
+  },
+  "dropoutCause": {
+    "plannerFailure": false,
+    "schemaLimitation": false,
+    "promptLimitation": false,
+    "generatorLimitation": true,
+    "templateFallback": true
+  },
+  "explanation": "The ArchitecturePlanner correctly identifies non-CRUD workflows and adds them as Pages. However, the legacy FrontendGenerator only knows how to generate pure CRUD tables linked to exact 'Entities'. When it processes a workflow page that has no direct 1:1 Entity match, it drops the intent completely and falls back to a hardcoded string template containing static UI blocks like 'Execute Action' and 'Business Logic Controller'."
+}

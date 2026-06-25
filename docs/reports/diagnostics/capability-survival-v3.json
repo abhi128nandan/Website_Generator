@@ -1,0 +1,36 @@
+{
+  "Workflows": [
+    "Lead Scoring",
+    "Revenue Analytics",
+    "Risk Analysis",
+    "Research Gap Detection",
+    "Sprint Planning",
+    "Fraud Detection"
+  ],
+  "Trace": {
+    "UserPrompt": {
+      "Status": "Capability Preserved",
+      "Description": "The user perfectly articulates the complex business logic and workflow required."
+    },
+    "ArchitecturePlanner": {
+      "Status": "Capability Degraded",
+      "Description": "The planner is forced to map the workflow into 'pages' and 'entities'. It invents a UI page for the workflow and hallucinates database tables to support it."
+    },
+    "FrontendAIAnalyzer": {
+      "Status": "Capability Degraded",
+      "Description": "Maps the hallucinated APIs into React frontend services and hooks."
+    },
+    "GenerationRouter": {
+      "Status": "Capability Degraded",
+      "Description": "Blindly routes the capability to a React/Node generator based purely on app mode."
+    },
+    "FrontendGenerator (CRUD Path)": {
+      "Status": "Capability Converted to Placeholder",
+      "Description": "If the workflow (e.g., 'Risk Analysis') lacks a 1:1 matching database entity, the generator falls back to the non-entity string template, stripping all business logic and rendering a static 'Execute Action' button."
+    },
+    "FinalOutput": {
+      "Status": "Capability Lost",
+      "Description": "The final application contains a nice-looking React UI with a 'Business Logic Controller' placeholder, but zero actual workflow implementation."
+    }
+  }
+}

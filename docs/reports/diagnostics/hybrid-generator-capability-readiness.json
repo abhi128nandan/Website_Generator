@@ -1,0 +1,6 @@
+{
+  "EntityAssumptions": "Reads the `entities` array to determine `needsDatabase` (Line 358) and to generate `PrismaModels` for the manifest.",
+  "CRUDAssumptions": "Very low. Generates custom Express backend routes rather than forcing strict CRUD controllers.",
+  "ServiceAssumptions": "Iterates over `arch.services` to generate React service files via LLM.",
+  "CapabilityReadiness": "Extremely High. Because HybridGenerator is already fully equipped to execute dynamic AI LLM generation (`generateValidCode`) for frontend and backend files, it is the most primed generator to accept an abstract `capabilities` array and convert it into fully functional Node.js backend logic or engine files without relying on templates."
+}

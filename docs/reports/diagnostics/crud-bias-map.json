@@ -1,0 +1,25 @@
+{
+  "biasSources": [
+    {
+      "source": "ArchitecturePlanner Prompt",
+      "keyword": "crud-admin",
+      "impact": "Used as the first example in 'appType', biasing the LLM to think in terms of back-office CRUD operations."
+    },
+    {
+      "source": "ArchitecturePlanner Prompt",
+      "keyword": "entities",
+      "impact": "Mandatory array in the JSON schema template. The example is ['User', 'Post', 'Comment'], strongly asserting database-driven data modeling."
+    },
+    {
+      "source": "ArchitecturePlanner Prompt",
+      "keyword": "apis",
+      "impact": "Mandatory array in the JSON schema template. The example is ['GET /api/users', 'POST /api/posts'], strongly asserting RESTful backend infrastructure."
+    },
+    {
+      "source": "ArchitecturePlanner Prompt",
+      "keyword": "isProtected, allowedRoles",
+      "impact": "Suggested properties in the 'pages' array example, inherently implying authentication and RBAC."
+    }
+  ],
+  "conclusion": "The ArchitecturePlanner prompt is heavily biased towards generating full-stack CRUD applications, structurally prohibiting the generation of purely stateless or static frontend applications."
+}

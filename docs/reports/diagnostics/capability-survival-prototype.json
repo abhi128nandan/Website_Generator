@@ -1,0 +1,5 @@
+{
+  "Trace": "Capability \u2193 HybridGenerator \u2193 generateValidCode \u2193 Validators \u2193 Repair \u2193 Output",
+  "FirstDestructionPoint": "None",
+  "Explanation": "If 'Lead Scoring Engine' is explicitly passed into the `generateValidCode` loop with `isTsx=false`, it bypasses the only validator that forces React (`ReactStructureValidator`). The TypeScript is generated, structurally validated as pure TS, compiled, optionally repaired by `tsc` outputs, and securely written to disk. The business logic survives 100%."
+}

@@ -1,0 +1,15 @@
+{
+  "options": {
+    "A": "Capabilities + DAG",
+    "B": "Workflow Nodes + Edges + Conditions",
+    "C": "Workflow DSL"
+  },
+  "rankings": {
+    "complexity": "Option B (Easier to parse than a full DSL, more expressive than a DAG)",
+    "scalability": "Option B",
+    "languageIndependence": "Option B (JSON-based state machine)",
+    "runtimeSimplicity": "Option B (Can map to Temporal.io or AWS Step Functions)",
+    "futureAIGeneration": "Option B (LLMs are excellent at generating JSON state machines)"
+  },
+  "smallestAdditive": "Option B: Workflow Nodes + Edges + Conditions."
+}

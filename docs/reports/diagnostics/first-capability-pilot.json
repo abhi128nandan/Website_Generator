@@ -1,0 +1,4 @@
+{
+  "SafestPilot": "Lead Scoring",
+  "Explanation": "Lead Scoring is the safest pilot because it is highly deterministic. It operates purely on mathematical heuristics and data parsing without requiring external third-party API integrations (like Research Gap Detection) or complex stream processing (like Revenue Analytics). It can be seamlessly implemented as a pure TypeScript class, which perfectly aligns with the strengths of the LLM and the AST validation pipeline."
+}

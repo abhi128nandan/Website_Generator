@@ -1,0 +1,17 @@
+{
+  "safestDesign": {
+    "concept": "AI-Driven Workflow Page Generation for Non-Entity Pages",
+    "details": [
+      "Instead of defaulting to a static string template in `packages/generators/src/templates/frontend.ts`, route non-entity pages through the same rigorous AI generation pipeline used by `FrontendAppGenerator.ts` (`generateValidCode`).",
+      "Pass the page's specific 'features', 'description', and 'name' to the prompt so the AI can generate custom, functional UI (e.g., charts, multistep forms) that executes real business logic.",
+      "Since `FrontendAppGenerator.ts` is already strict about UI Authority, Error Authority, and React Query Authority, this ensures the generated workflow pages adhere to the same standards without breaking existing constraints."
+    ]
+  },
+  "preservationChain": "Requirement -> Architecture Planner -> Architecture Schema -> FrontendGenerator (AI Fallback instead of Static Fallback) -> Validated React Code -> Executable Action.",
+  "preservesAuthorities": [
+    "UI Authority: The AI prompt explicitly enforces Tailwind/Lucide rules.",
+    "Layout Authority: Composes within the standard Dashboard Layout.",
+    "Error/Query Authority: The AI is instructed to use React Query hooks and Error boundaries.",
+    "Auth Authority: Uses useAuth hook."
+  ]
+}

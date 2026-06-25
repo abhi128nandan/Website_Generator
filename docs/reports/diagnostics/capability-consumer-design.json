@@ -1,0 +1,10 @@
+{
+  "FirstProducer": "ArchitecturePlanner (Generates the `capabilities` array based on the user's initial prompt).",
+  "FirstConsumer": "HybridGenerator (Iterates over the `capabilities` array during the backend generation phase).",
+  "FinalConsumer": "HybridGenerator (Passes the capability metadata directly into the `generateValidCode` LLM prompt, receiving the compiled TypeScript Engine as output).",
+  "IgnoredBy": [
+    "FrontendAIAnalyzer (Unaffected)",
+    "FrontendGenerator (Unaffected)",
+    "GenerationRouter (Passes blueprint blindly, so unaffected)"
+  ]
+}

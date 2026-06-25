@@ -1,0 +1,32 @@
+{
+  "Consumers": {
+    "FrontendAIAnalyzer": {
+      "Reads": ["architecture.entities", "architecture.apis"],
+      "Required": false,
+      "Optional": true,
+      "FallbackBehavior": "Emits empty arrays or skips service generation if absent.",
+      "BreakRisk": "Low"
+    },
+    "FrontendGenerator (templates/frontend.ts)": {
+      "Reads": ["architecture.pages", "architecture.entities"],
+      "Required": true,
+      "Optional": false,
+      "FallbackBehavior": "If an entity is absent for a page, falls back to a static string template placeholder.",
+      "BreakRisk": "Low (Does not crash, but destroys capability)"
+    },
+    "HybridGenerator": {
+      "Reads": ["architecture.pages", "architecture.components", "architecture.services", "architecture.hooks", "architecture.entities"],
+      "Required": false,
+      "Optional": true,
+      "FallbackBehavior": "Generates whatever is listed. If entities are absent, it disables database and Prisma generation.",
+      "BreakRisk": "Low"
+    },
+    "GenerationRouter": {
+      "Reads": ["architecture"],
+      "Required": true,
+      "Optional": false,
+      "FallbackBehavior": "Passes the blueprint directly into project memory.",
+      "BreakRisk": "None"
+    }
+  }
+}

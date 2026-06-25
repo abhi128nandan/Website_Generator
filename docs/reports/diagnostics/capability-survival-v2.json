@@ -1,0 +1,25 @@
+{
+  "Workflows": [
+    "Lead Scoring",
+    "Revenue Analytics",
+    "Forecasting",
+    "Sprint Planning",
+    "Risk Analysis",
+    "Research Gap Detection"
+  ],
+  "crud-admin_mode": {
+    "Survival": "Failed",
+    "Outcome": "Degrades to Placeholder UI",
+    "Reason": "These workflows lack a 1:1 database entity. The Scaffolder's frontend template requires an entity to build a data table. Without it, it falls back to a hardcoded string rendering an 'Execute Action' button and 'Business Logic Controller'."
+  },
+  "frontend-app_mode": {
+    "Survival": "Partial (UI Only)",
+    "Outcome": "Survives as React UI, fails as Business Logic",
+    "Reason": "The AI generates a functional React component representing the workflow, but because it is a frontend-only generation, the actual business logic engine (e.g., LeadScoreEngine, RiskAnalysisService) does not exist."
+  },
+  "hybrid-fullstack_mode": {
+    "Survival": "Partial (UI + Stub API)",
+    "Outcome": "Survives as React UI + Express Route, but lacks core capability",
+    "Reason": "Generates the UI and an Express backend, but defaults to CRUD route generation. Complex analytical workflows require specialized engines, not just REST endpoints."
+  }
+}

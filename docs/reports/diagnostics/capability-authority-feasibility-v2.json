@@ -1,0 +1,4 @@
+{
+  "Feasibility": "High",
+  "Evaluation": "Inserting a Capability Authority before Language Routing is the structurally sound solution. Currently, the ArchitecturePlanner defines the *implementation* (pages, APIs, entities) before the language or framework is even chosen. A Capability Authority would instead define *what* the system does (engines, pipelines, workflows) abstractly. Then, a downstream Language Authority would decide *how* to implement those capabilities (e.g., mapping a 'RecommendationEngine' capability into a Python FastAPI service, and mapping a 'Dashboard' capability into a React UI)."
+}

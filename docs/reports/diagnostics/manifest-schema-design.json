@@ -1,0 +1,27 @@
+{
+  "schema": {
+    "engine": "LeadScoringEngine",
+    "entryPoint": "calculate",
+    "constructor": ["PrismaClient"],
+    "inputDto": {"userActivities": "UserActivity[]", "leadInteractions": "LeadInteraction[]"},
+    "outputDto": "{score: Score, riskLevel: RiskLevel}",
+    "dependencies": ["@prisma/client"],
+    "runtime": "node",
+    "framework": "express"
+  },
+  "fields": {
+    "required": ["engine", "entryPoint", "inputDto", "outputDto"],
+    "optional": ["constructor", "dependencies", "runtime", "framework"],
+    "never": ["implementationLogic", "rawSourceCode", "secrets"]
+  },
+  "necessityRanking": [
+    "engine",
+    "entryPoint",
+    "inputDto",
+    "outputDto",
+    "constructor",
+    "dependencies",
+    "runtime",
+    "framework"
+  ]
+}

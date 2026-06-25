@@ -1,0 +1,7 @@
+{
+  "File": "packages/generators/src/templates/frontend.ts",
+  "RequiresEntities": "Lines 417-549 (The primary execution branch mapping database entities to CRUD UI tables).",
+  "RequiresPages": "Line 412 (The main iterator block generating frontend component files).",
+  "RequiresServices": "None (This specific file does not read or implement isolated services).",
+  "CouldConsumeCapabilities": "Line 552 (The `if (!pageTsx)` fallback block. Instead of rendering a static placeholder, this block could read a `capabilities` array and invoke the AI to generate the workflow engine)."
+}

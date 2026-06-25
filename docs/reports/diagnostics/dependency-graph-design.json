@@ -1,0 +1,14 @@
+{
+  "options": {
+    "A": "capabilities[] (Current: 0 orchestration)",
+    "B": "capabilities[] + dependencies[] (Minimal additive, but lacks pipeline features)",
+    "C": "Directed execution graph (Nodes = Capabilities, Edges = Data Flow)"
+  },
+  "rankings": {
+    "maintainability": "Option C (Explicit edges prevent implicit coupling)",
+    "languageIndependence": "Option C (DAG execution can run in any language)",
+    "runtimeSimplicity": "Option C (Runtime just traverses the graph)",
+    "futureOrchestration": "Option C (Supports branching, loops, and parallel execution)"
+  },
+  "smallestAdditive": "Option C implemented as a lightweight JSON DAG."
+}

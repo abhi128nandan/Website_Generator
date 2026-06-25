@@ -1,52 +1,52 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ASTValidator = void 0;
-const ts = __importStar(require("typescript"));
-const promises_1 = __importDefault(require("fs/promises"));
-const path_1 = __importDefault(require("path"));
+var ts = require("typescript");
+var promises_1 = require("fs/promises");
+var path_1 = require("path");
 /**
  * TypeScript diagnostic codes to SKIP during pre-install validation.
  * These are all caused by missing node_modules (react, react-dom, lucide-react, etc.)
  * and will be resolved by `pnpm install`. Checking them before install produces
  * hundreds of false positives that waste all repair attempts.
  */
-const SKIP_DIAGNOSTIC_CODES = new Set([
+var SKIP_DIAGNOSTIC_CODES = new Set([
     // 2307 is NOT skipped globally — handled selectively below
     //       (keep for relative imports, skip for npm packages)
     2503, // Cannot find namespace 'X'
@@ -69,7 +69,9 @@ const SKIP_DIAGNOSTIC_CODES = new Set([
     2614, // Module 'X' has no exported member 'Y' (often due to missing types resolution)
     2551, // Property 'X' does not exist on type 'Y'. Did you mean 'Z'? (cascading from missing types)
 ]);
-class ASTValidator {
+var ASTValidator = /** @class */ (function () {
+    function ASTValidator() {
+    }
     /**
      * Validates the generated TS/TSX files using the TypeScript Compiler API.
      *
@@ -83,205 +85,248 @@ class ASTValidator {
      * - Duplicate default exports
      * - Other structural TypeScript errors
      */
-    static async validate(targetDir) {
-        const frontendSrc = path_1.default.join(targetDir, 'frontend', 'src');
-        const backendSrc = path_1.default.join(targetDir, 'backend', 'src');
-        // Find all ts and tsx files
-        const fileNames = [];
-        async function collectFiles(dir) {
-            try {
-                const entries = await promises_1.default.readdir(dir, { withFileTypes: true });
-                for (const entry of entries) {
-                    const res = path_1.default.resolve(dir, entry.name);
-                    if (res.includes('node_modules') || res.includes('dist') || res.includes('build') || res.includes('coverage') || res.includes('.generated') || res.includes('.logs'))
-                        continue;
-                    if (entry.isDirectory()) {
-                        await collectFiles(res);
-                    }
-                    else if (res.endsWith('.ts') || res.endsWith('.tsx')) {
-                        fileNames.push(res);
-                    }
-                }
+    ASTValidator.validate = function (targetDir) {
+        return __awaiter(this, void 0, void 0, function () {
+            function collectFiles(dir) {
+                return __awaiter(this, void 0, void 0, function () {
+                    var entries, _i, entries_1, entry, res, e_2;
+                    return __generator(this, function (_a) {
+                        switch (_a.label) {
+                            case 0:
+                                _a.trys.push([0, 7, , 8]);
+                                return [4 /*yield*/, promises_1.default.readdir(dir, { withFileTypes: true })];
+                            case 1:
+                                entries = _a.sent();
+                                _i = 0, entries_1 = entries;
+                                _a.label = 2;
+                            case 2:
+                                if (!(_i < entries_1.length)) return [3 /*break*/, 6];
+                                entry = entries_1[_i];
+                                res = path_1.default.resolve(dir, entry.name);
+                                if (res.includes('node_modules') || res.includes('dist') || res.includes('build') || res.includes('coverage') || res.includes('.generated') || res.includes('.logs'))
+                                    return [3 /*break*/, 5];
+                                if (!entry.isDirectory()) return [3 /*break*/, 4];
+                                return [4 /*yield*/, collectFiles(res)];
+                            case 3:
+                                _a.sent();
+                                return [3 /*break*/, 5];
+                            case 4:
+                                if (res.endsWith('.ts') || res.endsWith('.tsx')) {
+                                    fileNames.push(res);
+                                }
+                                _a.label = 5;
+                            case 5:
+                                _i++;
+                                return [3 /*break*/, 2];
+                            case 6: return [3 /*break*/, 8];
+                            case 7:
+                                e_2 = _a.sent();
+                                return [3 /*break*/, 8];
+                            case 8: return [2 /*return*/];
+                        }
+                    });
+                });
             }
-            catch (e) {
-                // Source dir might not exist if generation totally failed
-            }
-        }
-        await collectFiles(frontendSrc);
-        await collectFiles(backendSrc);
-        if (fileNames.length === 0) {
-            return { isValid: false, errors: [{ file: 'unknown', line: 1, column: 1, code: 'NO_FILES', message: 'No TypeScript files found in frontend/src or backend/src.' }] };
-        }
-        const errors = [];
-        // --- Phase 1: Syntax-only parsing (per-file) ---
-        // Parse each file individually to catch syntax errors without type-checking
-        for (const fileName of fileNames) {
-            try {
-                const content = await promises_1.default.readFile(fileName, 'utf-8');
-                const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.ESNext, true, // setParentNodes
-                fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
-                // Check for syntax-level parse diagnostics
-                const syntaxDiags = sourceFile.parseDiagnostics;
-                if (syntaxDiags && syntaxDiags.length > 0) {
-                    for (const diag of syntaxDiags) {
-                        if (diag.category !== ts.DiagnosticCategory.Error)
-                            continue;
-                        const { line, character } = ts.getLineAndCharacterOfPosition(sourceFile, diag.start);
-                        const message = ts.flattenDiagnosticMessageText(diag.messageText, '\n');
-                        const relName = path_1.default.relative(targetDir, fileName).replace(/\\/g, '/');
+            var frontendSrc, backendSrc, fileNames, errors, _i, fileNames_1, fileName, content, sourceFile, syntaxDiags, _a, syntaxDiags_1, diag, _b, line, character, message, relName, e_1, relName, program, diagnostics, uniqueMap, _c, errors_1, err, uniqueErrors, slicedErrors;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
+                    case 0:
+                        frontendSrc = path_1.default.join(targetDir, 'frontend', 'src');
+                        backendSrc = path_1.default.join(targetDir, 'backend', 'src');
+                        fileNames = [];
+                        return [4 /*yield*/, collectFiles(frontendSrc)];
+                    case 1:
+                        _d.sent();
+                        return [4 /*yield*/, collectFiles(backendSrc)];
+                    case 2:
+                        _d.sent();
+                        if (fileNames.length === 0) {
+                            return [2 /*return*/, { isValid: false, errors: [{ file: 'unknown', line: 1, column: 1, code: 'NO_FILES', message: 'No TypeScript files found in frontend/src or backend/src.' }] }];
+                        }
+                        errors = [];
+                        _i = 0, fileNames_1 = fileNames;
+                        _d.label = 3;
+                    case 3:
+                        if (!(_i < fileNames_1.length)) return [3 /*break*/, 8];
+                        fileName = fileNames_1[_i];
+                        _d.label = 4;
+                    case 4:
+                        _d.trys.push([4, 6, , 7]);
+                        return [4 /*yield*/, promises_1.default.readFile(fileName, 'utf-8')];
+                    case 5:
+                        content = _d.sent();
+                        sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.ESNext, true, // setParentNodes
+                        fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+                        syntaxDiags = sourceFile.parseDiagnostics;
+                        if (syntaxDiags && syntaxDiags.length > 0) {
+                            for (_a = 0, syntaxDiags_1 = syntaxDiags; _a < syntaxDiags_1.length; _a++) {
+                                diag = syntaxDiags_1[_a];
+                                if (diag.category !== ts.DiagnosticCategory.Error)
+                                    continue;
+                                _b = ts.getLineAndCharacterOfPosition(sourceFile, diag.start), line = _b.line, character = _b.character;
+                                message = ts.flattenDiagnosticMessageText(diag.messageText, '\n');
+                                relName = path_1.default.relative(targetDir, fileName).replace(/\\/g, '/');
+                                errors.push({
+                                    file: relName,
+                                    line: line + 1,
+                                    column: character + 1,
+                                    code: diag.code || 'SYNTAX',
+                                    message: "[SYNTAX] ".concat(message)
+                                });
+                            }
+                        }
+                        // --- Phase 2: Duplicate declaration detection (AST walk) ---
+                        ASTValidator.checkDuplicateDeclarations(sourceFile, targetDir, errors);
+                        return [3 /*break*/, 7];
+                    case 6:
+                        e_1 = _d.sent();
+                        relName = path_1.default.relative(targetDir, fileName).replace(/\\/g, '/');
                         errors.push({
                             file: relName,
-                            line: line + 1,
-                            column: character + 1,
-                            code: diag.code || 'SYNTAX',
-                            message: `[SYNTAX] ${message}`
+                            line: 1,
+                            column: 1,
+                            code: 'PARSE_FAILED',
+                            message: "Failed to parse: ".concat(e_1.message)
                         });
-                    }
+                        return [3 /*break*/, 7];
+                    case 7:
+                        _i++;
+                        return [3 /*break*/, 3];
+                    case 8:
+                        program = ts.createProgram(fileNames, {
+                            noEmit: true,
+                            strict: false, // Don't flag implicit-any etc. before deps are installed
+                            target: ts.ScriptTarget.ESNext,
+                            moduleResolution: ts.ModuleResolutionKind.Bundler,
+                            allowImportingTsExtensions: true,
+                            jsx: ts.JsxEmit.ReactJSX,
+                            esModuleInterop: true,
+                            skipLibCheck: true,
+                            baseUrl: targetDir
+                        });
+                        diagnostics = ts.getPreEmitDiagnostics(program);
+                        diagnostics.forEach(function (diag) {
+                            if (diag.category !== ts.DiagnosticCategory.Error)
+                                return;
+                            // Skip diagnostics caused by missing node_modules
+                            if (SKIP_DIAGNOSTIC_CODES.has(diag.code))
+                                return;
+                            // TS2307 "Cannot find module" — selective handling:
+                            // Keep the error for relative imports (./  ../) which indicate broken generated code.
+                            // Skip for npm package imports which will resolve after pnpm install.
+                            if (diag.code === 2307) {
+                                var message = ts.flattenDiagnosticMessageText(diag.messageText, '\n');
+                                // Extract module specifier from "Cannot find module './foo' or its corresponding type declarations."
+                                var moduleMatch = message.match(/Cannot find module '([^']+)'/);
+                                if (moduleMatch) {
+                                    var moduleName = moduleMatch[1];
+                                    if (!moduleName.startsWith('./') && !moduleName.startsWith('../')) {
+                                        // npm package — skip (will resolve after install)
+                                        return;
+                                    }
+                                    // relative import — this is a real bug, keep the error
+                                }
+                            }
+                            if (diag.file) {
+                                var _a = ts.getLineAndCharacterOfPosition(diag.file, diag.start), line = _a.line, character = _a.character;
+                                var message = ts.flattenDiagnosticMessageText(diag.messageText, '\n');
+                                var fileName = path_1.default.relative(targetDir, diag.file.fileName).replace(/\\/g, '/');
+                                errors.push({
+                                    file: fileName,
+                                    line: line + 1,
+                                    column: character + 1,
+                                    code: diag.code,
+                                    message: "[TS".concat(diag.code, "] ").concat(message)
+                                });
+                            }
+                            else {
+                                errors.push({
+                                    file: 'unknown',
+                                    line: 1,
+                                    column: 1,
+                                    code: diag.code,
+                                    message: "[TS".concat(diag.code, "] ").concat(ts.flattenDiagnosticMessageText(diag.messageText, '\n'))
+                                });
+                            }
+                        });
+                        uniqueMap = new Map();
+                        for (_c = 0, errors_1 = errors; _c < errors_1.length; _c++) {
+                            err = errors_1[_c];
+                            // Use just the file as the key to only keep the very first root error found in that file
+                            if (!uniqueMap.has(err.file)) {
+                                uniqueMap.set(err.file, err);
+                            }
+                        }
+                        uniqueErrors = Array.from(uniqueMap.values());
+                        slicedErrors = uniqueErrors.slice(0, 20);
+                        return [2 /*return*/, {
+                                isValid: errors.length === 0,
+                                errors: slicedErrors
+                            }];
                 }
-                // --- Phase 2: Duplicate declaration detection (AST walk) ---
-                ASTValidator.checkDuplicateDeclarations(sourceFile, targetDir, errors);
-            }
-            catch (e) {
-                const relName = path_1.default.relative(targetDir, fileName).replace(/\\/g, '/');
-                errors.push({
-                    file: relName,
-                    line: 1,
-                    column: 1,
-                    code: 'PARSE_FAILED',
-                    message: `Failed to parse: ${e.message}`
-                });
-            }
-        }
-        // --- Phase 3: Semantic diagnostics (filtered) ---
-        // Run full program but only keep diagnostics that are NOT caused by missing node_modules
-        const program = ts.createProgram(fileNames, {
-            noEmit: true,
-            strict: false, // Don't flag implicit-any etc. before deps are installed
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Bundler,
-            allowImportingTsExtensions: true,
-            jsx: ts.JsxEmit.ReactJSX,
-            esModuleInterop: true,
-            skipLibCheck: true,
-            baseUrl: targetDir
+            });
         });
-        const diagnostics = ts.getPreEmitDiagnostics(program);
-        diagnostics.forEach(diag => {
-            if (diag.category !== ts.DiagnosticCategory.Error)
-                return;
-            // Skip diagnostics caused by missing node_modules
-            if (SKIP_DIAGNOSTIC_CODES.has(diag.code))
-                return;
-            // TS2307 "Cannot find module" — selective handling:
-            // Keep the error for relative imports (./  ../) which indicate broken generated code.
-            // Skip for npm package imports which will resolve after pnpm install.
-            if (diag.code === 2307) {
-                const message = ts.flattenDiagnosticMessageText(diag.messageText, '\n');
-                // Extract module specifier from "Cannot find module './foo' or its corresponding type declarations."
-                const moduleMatch = message.match(/Cannot find module '([^']+)'/);
-                if (moduleMatch) {
-                    const moduleName = moduleMatch[1];
-                    if (!moduleName.startsWith('./') && !moduleName.startsWith('../')) {
-                        // npm package — skip (will resolve after install)
-                        return;
-                    }
-                    // relative import — this is a real bug, keep the error
-                }
-            }
-            if (diag.file) {
-                const { line, character } = ts.getLineAndCharacterOfPosition(diag.file, diag.start);
-                const message = ts.flattenDiagnosticMessageText(diag.messageText, '\n');
-                const fileName = path_1.default.relative(targetDir, diag.file.fileName).replace(/\\/g, '/');
-                errors.push({
-                    file: fileName,
-                    line: line + 1,
-                    column: character + 1,
-                    code: diag.code,
-                    message: `[TS${diag.code}] ${message}`
-                });
-            }
-            else {
-                errors.push({
-                    file: 'unknown',
-                    line: 1,
-                    column: 1,
-                    code: diag.code,
-                    message: `[TS${diag.code}] ${ts.flattenDiagnosticMessageText(diag.messageText, '\n')}`
-                });
-            }
-        });
-        // De-duplicate errors: keep only the first error per file to stop cascading errors
-        const uniqueMap = new Map();
-        for (const err of errors) {
-            // Use just the file as the key to only keep the very first root error found in that file
-            if (!uniqueMap.has(err.file)) {
-                uniqueMap.set(err.file, err);
-            }
-        }
-        const uniqueErrors = Array.from(uniqueMap.values());
-        // Slice to maximum 20 root errors
-        const slicedErrors = uniqueErrors.slice(0, 20);
-        return {
-            isValid: errors.length === 0,
-            errors: slicedErrors
-        };
-    }
+    };
     /**
      * Walks the AST to detect duplicate top-level declarations and duplicate
      * default exports within a single file — the most common AI generation defect.
      */
-    static checkDuplicateDeclarations(sourceFile, targetDir, errors) {
-        const relName = path_1.default.relative(targetDir, sourceFile.fileName).replace(/\\/g, '/');
-        const topLevelNames = new Map(); // name -> count
-        let defaultExportCount = 0;
-        for (const stmt of sourceFile.statements) {
+    ASTValidator.checkDuplicateDeclarations = function (sourceFile, targetDir, errors) {
+        var _a, _b;
+        var relName = path_1.default.relative(targetDir, sourceFile.fileName).replace(/\\/g, '/');
+        var topLevelNames = new Map(); // name -> count
+        var defaultExportCount = 0;
+        for (var _i = 0, _c = sourceFile.statements; _i < _c.length; _i++) {
+            var stmt = _c[_i];
             // Count default exports
             if (ts.isExportAssignment(stmt)) {
                 defaultExportCount++;
             }
             if ((ts.isFunctionDeclaration(stmt) || ts.isClassDeclaration(stmt)) &&
-                stmt.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) &&
-                stmt.modifiers?.some(m => m.kind === ts.SyntaxKind.DefaultKeyword)) {
+                ((_a = stmt.modifiers) === null || _a === void 0 ? void 0 : _a.some(function (m) { return m.kind === ts.SyntaxKind.ExportKeyword; })) &&
+                ((_b = stmt.modifiers) === null || _b === void 0 ? void 0 : _b.some(function (m) { return m.kind === ts.SyntaxKind.DefaultKeyword; }))) {
                 defaultExportCount++;
             }
             // Track top-level declaration names
-            let name;
+            var name_1 = void 0;
             if (ts.isFunctionDeclaration(stmt) && stmt.name) {
-                name = stmt.name.text;
+                name_1 = stmt.name.text;
             }
             else if (ts.isClassDeclaration(stmt) && stmt.name) {
-                name = stmt.name.text;
+                name_1 = stmt.name.text;
             }
             else if (ts.isInterfaceDeclaration(stmt)) {
-                name = stmt.name.text;
+                name_1 = stmt.name.text;
             }
             else if (ts.isTypeAliasDeclaration(stmt)) {
-                name = stmt.name.text;
+                name_1 = stmt.name.text;
             }
             else if (ts.isEnumDeclaration(stmt)) {
-                name = stmt.name.text;
+                name_1 = stmt.name.text;
             }
             else if (ts.isVariableStatement(stmt)) {
-                for (const decl of stmt.declarationList.declarations) {
+                for (var _d = 0, _e = stmt.declarationList.declarations; _d < _e.length; _d++) {
+                    var decl = _e[_d];
                     if (ts.isIdentifier(decl.name)) {
-                        const varName = decl.name.text;
+                        var varName = decl.name.text;
                         topLevelNames.set(varName, (topLevelNames.get(varName) || 0) + 1);
                     }
                 }
             }
-            if (name) {
-                topLevelNames.set(name, (topLevelNames.get(name) || 0) + 1);
+            if (name_1) {
+                topLevelNames.set(name_1, (topLevelNames.get(name_1) || 0) + 1);
             }
         }
         // Report duplicate declarations
-        for (const [name, count] of topLevelNames) {
+        for (var _f = 0, topLevelNames_1 = topLevelNames; _f < topLevelNames_1.length; _f++) {
+            var _g = topLevelNames_1[_f], name_2 = _g[0], count = _g[1];
             if (count > 1) {
                 errors.push({
                     file: relName,
                     line: 1,
                     column: 1,
                     code: 'DUPLICATE_DECLARATION',
-                    message: `[DUPLICATE] Identifier '${name}' is declared ${count} times at the top level`
+                    message: "[DUPLICATE] Identifier '".concat(name_2, "' is declared ").concat(count, " times at the top level")
                 });
             }
         }
@@ -292,11 +337,11 @@ class ASTValidator {
                 line: 1,
                 column: 1,
                 code: 'DUPLICATE_DEFAULT_EXPORT',
-                message: `[DUPLICATE] File has ${defaultExportCount} default exports (expected at most 1)`
+                message: "[DUPLICATE] File has ".concat(defaultExportCount, " default exports (expected at most 1)")
             });
         }
         // Special Rule: Check for missing default exports in frontend/src/pages
-        if (relName.includes('frontend/src/pages/') || relName.includes('src/pages/')) {
+        if ((relName.includes('frontend/src/pages/') || relName.includes('src/pages/')) && !relName.endsWith('index.ts') && !relName.endsWith('index.tsx')) {
             if (defaultExportCount !== 1) {
                 errors.push({
                     file: relName,
@@ -307,6 +352,7 @@ class ASTValidator {
                 });
             }
         }
-    }
-}
+    };
+    return ASTValidator;
+}());
 exports.ASTValidator = ASTValidator;

@@ -8,6 +8,13 @@ export interface ArchitectureBlueprint {
   pages: (string | { name: string; route?: string; isProtected?: boolean; allowedRoles?: string[] })[];
   entities: string[];
   apis: string[];
+  capabilities?: {
+    name: string;
+    description: string;
+    type: string;
+    inputs?: string[];
+    outputs?: string[];
+  }[];
   designTokens: {
     primaryColor: string;
     layout: string;
@@ -44,6 +51,15 @@ Output ONLY valid JSON matching this exact structure, with no markdown formattin
   ],
   "entities": ["User", "Post", "Comment"],
   "apis": ["GET /api/users", "POST /api/posts"],
+  "capabilities": [
+    {
+      "name": "LeadScoringEngine",
+      "description": "Calculates lead scores based on interaction events",
+      "type": "workflow",
+      "inputs": ["UserActivity"],
+      "outputs": ["Score"]
+    }
+  ],
   "designTokens": {
     "primaryColor": "#000000",
     "layout": "sidebar"

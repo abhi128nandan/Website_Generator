@@ -1,0 +1,12 @@
+{
+  "phase": "35I",
+  "audit": "Capability Integration Architecture",
+  "trace": [
+    "Capability (Metadata in Blueprint)",
+    "Engine (Pure TypeScript business logic)",
+    "Service (Orchestrator bridging Engine and Adapters)",
+    "Runtime Adapter (Express Route, Cron Job, Message Queue Handler)",
+    "Consumer (Frontend UI, External API client, Background Worker)"
+  ],
+  "conclusion": "The Engine must never be exposed directly to a Runtime Adapter. A Service layer is required to orchestrate engine instantiation, dependency injection (like DB clients), and transaction management."
+}

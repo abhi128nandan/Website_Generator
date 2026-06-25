@@ -1,0 +1,14 @@
+{
+  "phase": "35I",
+  "audit": "Capability Service Layer",
+  "findings": {
+    "role": "Facade / Orchestrator",
+    "responsibilities": [
+      "Instantiate Capability Engines",
+      "Inject external dependencies (e.g., PrismaClient, third-party API clients)",
+      "Map inputs from adapter layer to Engine formats",
+      "Handle domain-level exceptions and map them to standard errors"
+    ],
+    "crud_coexistence": "Capability Services can coexist perfectly with CRUD Services. They follow the same exact boundary pattern, allowing the Express router generator to consume them identically without breaking backward compatibility."
+  }
+}

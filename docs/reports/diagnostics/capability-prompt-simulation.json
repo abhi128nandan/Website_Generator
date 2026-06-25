@@ -1,0 +1,6 @@
+{
+  "Simulation": "Iterating over `capabilities` and invoking `generateValidCode(provider, prompt, false, name, targetDir, onLog)`.",
+  "GeneratedFiles": "The LLM would output highly complex, self-contained TypeScript files such as `LeadScoringEngine.ts` and `RevenueAnalyticsEngine.ts`.",
+  "BusinessLogicSurvival": "100% Survival. The LLM is forced to generate the engine logic explicitly because it is instructed to do so by the prompt. It doesn't have an opportunity to fall back to 'Execute Action'.",
+  "PlaceholderPresence": "Zero. The legacy `if (!pageTsx)` block from the Scaffolder is completely bypassed."
+}

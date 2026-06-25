@@ -1,0 +1,9 @@
+{
+  "options": {
+    "A": "Generated Engine directly",
+    "B": "Generated Manifest directly",
+    "C": "Manifest + Engine"
+  },
+  "verdict": "Option C (Manifest + Engine)",
+  "reasoning": "Consuming the Manifest + Engine produces the smallest amount of future technical debt. It decouples interface discovery from logic execution, ensuring that Express, FastAPI, or any future framework does not need to parse ASTs to determine how to run the business logic."
+}

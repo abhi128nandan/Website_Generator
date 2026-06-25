@@ -1,0 +1,5 @@
+{
+  "feasible": true,
+  "strategy": "AST parsing during generation to emit an adapter class with a standard `execute` method that maps generic Express request payloads to the specific engine constructor and method.",
+  "smallestAdditiveSolution": "generated adapter"
+}

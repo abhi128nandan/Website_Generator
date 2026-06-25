@@ -1,0 +1,29 @@
+{
+  "taskId": "Task 5",
+  "question": "What is the smallest additive workflow representation?",
+  "evaluation": {
+    "Option A": {
+      "type": "Sequential List",
+      "analysis": "Too rigid. Fails immediately on conditional business logic or human approval steps."
+    },
+    "Option B": {
+      "type": "DAG",
+      "analysis": "Supports branching and parallelism, but lacks native support for cycles (retries) and explicit pause states."
+    },
+    "Option C": {
+      "type": "State Machine",
+      "analysis": "Specifically models states, transitions, wait states, failure catchers, and cyclic retries natively. Perfect fit for enterprise workflows."
+    },
+    "Option D": {
+      "type": "Workflow Graph",
+      "analysis": "Generic term, lacks strict execution semantics."
+    }
+  },
+  "ranking": [
+    "Option C: State Machine (Most robust for Enterprise)",
+    "Option B: DAG",
+    "Option D: Workflow Graph",
+    "Option A: Sequential List"
+  ],
+  "conclusion": "A State Machine (Option C) is the architecturally correct choice for orchestrating capabilities, as it natively handles the complex enterprise execution states (retries, timeouts, conditional branches) required for robust business logic."
+}

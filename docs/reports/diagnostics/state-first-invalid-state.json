@@ -1,0 +1,9 @@
+{
+  "taskId": "Task 2",
+  "question": "What is the first enterprise workflow that fails?",
+  "workflow": "Loan Processing (with Human Approval or Identity Webhook)",
+  "executionStep": "Wait for Webhook Callback / Manual Review",
+  "missingState": "The execution context (original loan request data, intermediate risk scores) and the correlation ID connecting the external webhook back to the suspended workflow instance.",
+  "failureMechanism": "The workflow executes RiskAnalysisEngine, suspends itself in memory waiting for a callback, and the server restarts during a routine deployment. The Node.js process memory is cleared. When the webhook finally arrives at the callback endpoint, the process has no record of the workflow instance. The workflow is permanently orphaned and stuck in limbo.",
+  "conclusion": "Any workflow containing an asynchronous wait state (human approval, webhook, timer) is fundamentally impossible to guarantee without state persistence."
+}

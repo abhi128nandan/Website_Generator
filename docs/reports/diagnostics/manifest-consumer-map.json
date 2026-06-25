@@ -1,0 +1,13 @@
+{
+  "consumers": {
+    "Express Runtime Adapter": {"required": ["engine", "entryPoint", "inputDto", "outputDto"], "optional": ["constructor", "dependencies"]},
+    "FastAPI Adapter": {"required": ["engine", "entryPoint", "inputDto", "outputDto"], "optional": ["constructor", "dependencies"]},
+    "Spring Boot Adapter": {"required": ["engine", "entryPoint", "inputDto", "outputDto"], "optional": ["constructor", "dependencies"]},
+    "React Query Hook Generator": {"required": ["engine", "inputDto", "outputDto"], "optional": ["entryPoint"]},
+    "Frontend Service Generator": {"required": ["engine", "inputDto", "outputDto"], "optional": ["entryPoint"]},
+    "OpenAPI Generator": {"required": ["engine", "inputDto", "outputDto"], "optional": ["entryPoint", "dependencies"]},
+    "CLI Runner": {"required": ["engine", "entryPoint", "inputDto"], "optional": ["outputDto", "dependencies"]},
+    "Queue Worker": {"required": ["engine", "entryPoint", "inputDto"], "optional": ["constructor"]}
+  },
+  "manifestSufficient": true
+}

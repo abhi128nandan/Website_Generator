@@ -1,0 +1,8 @@
+{
+  "registry": {
+    "namespace": "/api/capabilities/*",
+    "method": "POST",
+    "collisionRisk": "None",
+    "description": "Standardized dynamic routing for all generated capabilities. Completely isolated from standard entity CRUD operations."
+  }
+}

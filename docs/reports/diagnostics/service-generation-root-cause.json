@@ -1,0 +1,5 @@
+{
+  "sourceFile": "packages/generators/src/generators/frontend-ai-analyzer.ts",
+  "exactRule": "If 'Authoritative Business Context' contains APIs, you MUST map those explicit endpoints into the corresponding service.endpoints array.",
+  "rootCauseChain": "Because the ArchitecturePlanner (upstream) hardcodes 'apis' into the JSON schema regardless of application mode, the resulting blueprint always contains APIs. The FrontendAIAnalyzer then strictly obeys the rule above, converting those hallucinated APIs into physical Service definitions."
+}

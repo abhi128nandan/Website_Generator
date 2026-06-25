@@ -1,0 +1,7 @@
+{
+  "dependencies": [
+    "CapabilityInterface",
+    "CapabilityRegistry"
+  ],
+  "isolated": true
+}
